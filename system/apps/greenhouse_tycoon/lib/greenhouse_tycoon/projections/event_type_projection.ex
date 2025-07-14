@@ -103,7 +103,7 @@ defmodule GreenhouseTycoon.Projections.EventTypeProjection do
     # Clean up subscription and proxy
     if state.subscription do
       try do
-        store = :reg_gh
+        store = get_store_id()
         API.remove_subscription(store, :by_event_type, state.event_type, state.subscription)
       rescue
         _ -> :ok  # Ignore errors during cleanup
@@ -127,6 +127,12 @@ defmodule GreenhouseTycoon.Projections.EventTypeProjection do
   
   # Private functions
   
+  defp get_store_id do
+    # Get the store ID from the Commanded configuration
+    commanded_config = Application.get_env(:greenhouse_tycoon, GreenhouseTycoon.CommandedApp)[:event_store] || []
+    Keyword.get(commanded_config, :store_id, :shared_default)
+  end
+  
   defp start_circuit_breaker(name) do
     case CircuitBreaker.start_link([
       name: name,
@@ -143,7 +149,7 @@ defmodule GreenhouseTycoon.Projections.EventTypeProjection do
   
   defp create_subscription(state) do
     # Subscribe to events by event type using ex-esdb API
-    store = :reg_gh  # Use the configured store ID
+    store = get_store_id()  # Use the configured store ID
     subscription_name = "#{state.event_type}_projection"
     
     # Create a proxy process that can handle ExESDB subscription messages properly
@@ -251,10 +257,17 @@ defmodule GreenhouseTycoon.Projections.EventTypeProjection do
   
   defp extract_greenhouse_id(stream_id) do
     # Extract greenhouse_id from stream_id
-    # Stream format: "greenhouse_tycoon_{greenhouse_id}"
-    case String.split(stream_id, "_", parts: 3) do
-      ["regulate", "greenhouse", greenhouse_id] when greenhouse_id != "" ->
-        greenhouse_id
+    # Stream format: "gh_tyc_{greenhouse_id}"
+    case String.split(stream_id, "_", parts: 2) do
+      ["gh", rest] ->
+        # Handle "gh_tyc_greenhouse_id" format
+        case String.split(rest, "_", parts: 2) do
+          ["tyc", greenhouse_id] when greenhouse_id != "" ->
+            greenhouse_id
+          _ ->
+            Logger.warning("Could not extract greenhouse_id from stream_id: #{stream_id}")
+            nil
+        end
       
       _ ->
         # Log for debugging and return nil if pattern doesn't match

@@ -16,7 +16,7 @@ defmodule GreenhouseTycoon.CachePopulationService do
   alias GreenhouseTycoon.CacheRebuildService
   alias ExESDBGater.API
   
-  @store_id :reg_gh
+  # Store ID will be read from config at runtime
   @max_retries 10
   @initial_delay_ms 1_000
   @max_delay_ms 30_000
@@ -219,6 +219,10 @@ defmodule GreenhouseTycoon.CachePopulationService do
   
   # Private functions
   
+  defp get_store_id do
+    Application.get_env(:ex_esdb, :khepri)[:store_id] || :shared_default
+  end
+  
   defp perform_cache_population do
     Logger.info("CachePopulationService: Checking ExESDB connectivity...")
     
@@ -267,7 +271,7 @@ defmodule GreenhouseTycoon.CachePopulationService do
   defp wait_for_esdb_connectivity(attempt \\ 1, max_attempts \\ 30) do
     Logger.debug("CachePopulationService: Checking ExESDB connectivity (attempt #{attempt}/#{max_attempts})")
     
-    case API.get_streams(@store_id) do
+    case API.get_streams(get_store_id()) do
       {:ok, _streams} ->
         Logger.info("CachePopulationService: ExESDB connectivity confirmed on attempt #{attempt}")
         :ok
@@ -289,7 +293,7 @@ defmodule GreenhouseTycoon.CachePopulationService do
       case GreenhouseTycoon.CacheService.count_greenhouses() do
         cache_size when cache_size > 0 ->
           # Cache has items, check if it seems complete by comparing with streams
-          case API.get_streams(@store_id) do
+          case API.get_streams(get_store_id()) do
             {:ok, streams} ->
               stream_count = length(streams)
               
@@ -308,7 +312,7 @@ defmodule GreenhouseTycoon.CachePopulationService do
           
         0 ->
           # Cache is empty, check if there are streams to populate from
-          case API.get_streams(@store_id) do
+          case API.get_streams(get_store_id()) do
             {:ok, streams} ->
               stream_count = length(streams)
               

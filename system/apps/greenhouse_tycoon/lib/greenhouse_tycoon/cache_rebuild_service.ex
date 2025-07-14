@@ -15,14 +15,14 @@ defmodule GreenhouseTycoon.CacheRebuildService do
 
   alias GreenhouseTycoon.Projections.Handlers.{
     GreenhouseEventHandler,
-    TemperatureEventHandler,
     HumidityEventHandler,
-    LightEventHandler
+    LightEventHandler,
+    TemperatureEventHandler
   }
 
   alias ExESDBGater.API
 
-  @store_id :reg_gh
+  # Store ID will be read from config at runtime
   @cache_name :greenhouse_read_models
   @batch_size 100
 
@@ -52,11 +52,12 @@ defmodule GreenhouseTycoon.CacheRebuildService do
       end
 
       # Step 2: Get all streams
+      store_id = get_store_id()
       Logger.debug(
-        "CacheRebuildService: Calling API.get_streams with store_id: #{inspect(@store_id)}"
+        "CacheRebuildService: Calling API.get_streams with store_id: #{inspect(store_id)}"
       )
 
-      case API.get_streams(@store_id) do
+      case API.get_streams(store_id) do
         {:ok, streams} when is_list(streams) ->
           stream_count = length(streams)
           Logger.info("CacheRebuildService: Found #{stream_count} streams to rebuild")
@@ -164,11 +165,11 @@ defmodule GreenhouseTycoon.CacheRebuildService do
   """
   @spec get_rebuild_info() :: {:ok, map()} | {:error, term()}
   def get_rebuild_info do
-    case API.get_streams(@store_id) do
+    case API.get_streams(get_store_id()) do
       {:ok, streams} ->
         stream_info =
           Enum.map(streams, fn stream_id ->
-            case API.get_version(@store_id, stream_id) do
+            case API.get_version(get_store_id(), stream_id) do
               {:ok, version} when version >= 0 ->
                 %{stream_id: stream_id, event_count: version + 1}
 
@@ -198,6 +199,10 @@ defmodule GreenhouseTycoon.CacheRebuildService do
   end
 
   # Private functions
+  
+  defp get_store_id do
+    Application.get_env(:ex_esdb, :khepri)[:store_id] || :shared_default
+  end
 
   defp process_streams(stream_ids) do
     initial_stats = %{
@@ -268,7 +273,7 @@ defmodule GreenhouseTycoon.CacheRebuildService do
         {:ok, %{events_processed: 0, events_failed: 0, greenhouses_created: 0, errors: []}}
 
       _ ->
-        case API.get_version(@store_id, stream_id) do
+        case API.get_version(get_store_id(), stream_id) do
           {:ok, latest_version} when latest_version >= 0 ->
             # ExESDB uses 0-based indexing consistently
             Logger.info(
@@ -323,7 +328,7 @@ defmodule GreenhouseTycoon.CacheRebuildService do
         "CacheRebuildService: Reading batch from #{stream_id}, start_version: #{current_version}, count: #{batch_size}"
       )
 
-      case API.get_events(@store_id, stream_id, current_version, batch_size, :forward) do
+      case API.get_events(get_store_id(), stream_id, current_version, batch_size, :forward) do
         {:ok, events} ->
           batch_stats = process_event_batch(events, greenhouse_id)
 

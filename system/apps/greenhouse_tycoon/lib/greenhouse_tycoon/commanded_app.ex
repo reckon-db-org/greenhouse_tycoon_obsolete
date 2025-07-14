@@ -10,7 +10,7 @@ defmodule GreenhouseTycoon.CommandedApp do
     otp_app: :greenhouse_tycoon,
     event_store: [
       adapter: ExESDB.Commanded.Adapter,
-      store_id: :reg_gh,
+      store_id: :gh_tyc,
       stream_prefix: "greenhouse_tycoon_"
     ],
     pubsub: [

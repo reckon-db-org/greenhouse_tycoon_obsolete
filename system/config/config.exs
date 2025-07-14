@@ -9,22 +9,6 @@
 # move said applications out of the umbrella.
 import Config
 
-# Configure Mix tasks and generators
-config :greenhouse_tycoon,
-  ecto_repos: [GreenhouseTycoon.Repo]
-
-config :manage_crops,
-  ecto_repos: [ManageCrops.Repo]
-
-config :procure_supplies,
-  ecto_repos: [ProcureSupplies.Repo]
-
-config :maintain_equipment,
-  ecto_repos: [MaintainEquipment.Repo]
-
-config :manage_greenhouse,
-  ecto_repos: [ManageGreenhouse.Repo]
-
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails
@@ -76,72 +60,60 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-# Configure ExESDB Gater
+# Shared configuration for common libraries
+# Individual apps configure their own ExESDB instances
+
+# Configure ExESDB Gater (shared by all apps)
 config :ex_esdb_gater, :api, pub_sub: :ex_esdb_pubsub
 
-# Configure the Commanded application to use ExESDB adapter
-config :greenhouse_tycoon, GreenhouseTycoon.CommandedApp,
-  event_store: [
-    adapter: ExESDB.Commanded.Adapter,
-    store_id: :reg_gh,
-    stream_prefix: "reg_gh_",
-    serializer: Jason,
-    event_type_mapper: GreenhouseTycoon.EventTypeMapper
-  ]
+# ExESDB configuration is handled by individual apps
+# No shared ExESDB configuration needed - each app configures its own store
 
-config :manage_crops, ManageCrops.CommandedApp,
-  event_store: [
-    adapter: ExESDB.Commanded.Adapter,
-    store_id: :mng_crops,
-    stream_prefix: "mng_crops_",
-    serializer: Jason,
-    event_type_mapper: ManageCrops.EventTypeMapper
-  ]
+# Import individual app configurations
+import_config "../apps/greenhouse_tycoon/config/config.exs"
 
-config :procure_supplies, ProcureSupplies.CommandedApp,
-  event_store: [
-    adapter: ExESDB.Commanded.Adapter,
-    store_id: :proc_sup,
-    stream_prefix: "proc_sup_",
-    serializer: Jason,
-    event_type_mapper: ProcureSupplies.EventTypeMapper
-  ]
+# Configure additional apps' Commanded integrations
+# Uncomment when creating these apps:
 
-config :maintain_equipment, MaintainEquipment.CommandedApp,
-  event_store: [
-    adapter: ExESDB.Commanded.Adapter,
-    store_id: :maintain_equipment,
-    stream_prefix: "mntn_eqpmt_",
-    serializer: Jason,
-    event_type_mapper: MaintainEquipment.EventTypeMapper
-  ]
+# config :manage_crops, ManageCrops.CommandedApp,
+#   event_store: [
+#     adapter: ExESDB.Commanded.Adapter,
+#     store_id: :manage_crops,
+#     stream_prefix: "manage_crops_",
+#     serializer: Jason
+#   ]
 
-config :manage_greenhouse, ManageGreenhouse.CommandedApp,
-  event_store: [
-    adapter: ExESDB.Commanded.Adapter,
-    store_id: :mng_gh,
-    stream_prefix: "mng_gh_",
-    serializer: Jason,
-    event_type_mapper: ManageGreenhouse.EventTypeMapper
-  ]
+# config :procure_supplies, ProcureSupplies.CommandedApp,
+#   event_store: [
+#     adapter: ExESDB.Commanded.Adapter,
+#     store_id: :procure_supplies,
+#     stream_prefix: "procure_supplies_",
+#     serializer: Jason
+#   ]
 
-# Configure the ExESDB adapter to use the event type mapper
-config :ex_esdb_commanded_adapter, :event_type_mapper, GreenhouseTycoon.EventTypeMapper
+# config :maintain_equipment, MaintainEquipment.CommandedApp,
+#   event_store: [
+#     adapter: ExESDB.Commanded.Adapter,
+#     store_id: :maintain_equipment,
+#     stream_prefix: "maintain_equipment_",
+#     serializer: Jason
+#   ]
 
-# Configure libcluster for automatic cluster discovery (preferred over seed_nodes)
-config :libcluster,
-  topologies: [
-    greenhouse_tycoon: [
-      strategy: Cluster.Strategy.Gossip,
-      config: [
-        port: 45_892,
-        if_addr: "0.0.0.0",
-        multicast_addr: "255.255.255.255",
-        broadcast_only: true,
-        secret: System.get_env("EX_ESDB_CLUSTER_SECRET") || "dev_cluster_secret"
-      ]
-    ]
-  ]
+# config :manage_greenhouse, ManageGreenhouse.CommandedApp,
+#   event_store: [
+#     adapter: ExESDB.Commanded.Adapter,
+#     store_id: :manage_greenhouse,
+#     stream_prefix: "manage_greenhouse_",
+#     serializer: Jason
+#   ]
+
+# config :control_equipment, ControlEquipment.CommandedApp,
+#   event_store: [
+#     adapter: ExESDB.Commanded.Adapter,
+#     store_id: :control_equipment,
+#     stream_prefix: "control_equipment_",
+#     serializer: Jason
+#   ]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

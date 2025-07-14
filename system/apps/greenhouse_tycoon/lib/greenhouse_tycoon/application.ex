@@ -9,10 +9,6 @@ defmodule GreenhouseTycoon.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      GreenhouseTycoon.Repo,
-      {Ecto.Migrator,
-        repos: Application.fetch_env!(:greenhouse_tycoon, :ecto_repos),
-        skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:greenhouse_tycoon, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: GreenhouseTycoon.PubSub},
       # Start the Finch HTTP client for sending emails
@@ -37,10 +33,5 @@ defmodule GreenhouseTycoon.Application do
 
     opts = [strategy: :one_for_one, name: GreenhouseTycoon.Supervisor]
     Supervisor.start_link(children, opts)
-  end
-
-  defp skip_migrations?() do
-    # By default, sqlite migrations are run when using a release
-    System.get_env("RELEASE_NAME") != nil
   end
 end

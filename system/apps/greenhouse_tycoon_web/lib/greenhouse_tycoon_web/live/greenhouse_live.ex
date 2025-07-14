@@ -241,17 +241,17 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <!-- Header -->
-      <div class="bg-white shadow">
+      <div class="bg-white dark:bg-gray-800 shadow transition-colors duration-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex justify-between items-center h-16">
             <div class="flex items-center">
-              <.link navigate={~p"/"} class="text-green-600 hover:text-green-700 mr-4">
+              <.link navigate={~p"/"} class="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 mr-4 transition-colors duration-200">
                 <.icon name="hero-arrow-left" class="h-6 w-6" />
               </.link>
-              <.icon name="hero-home-modern" class="h-8 w-8 text-green-600 mr-3" />
-              <h1 class="text-2xl font-bold text-gray-900">
+              <.icon name="hero-home-modern" class="h-8 w-8 text-green-600 dark:text-green-400 mr-3" />
+              <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 Greenhouse <%= @greenhouse_id %>
               </h1>
             </div>
@@ -270,25 +270,25 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
       <!-- Main Content -->
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Environmental Controls -->
-        <div class="bg-white shadow rounded-lg">
-          <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-medium text-gray-900">Environmental Control</h2>
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg transition-colors duration-200">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Environmental Control</h2>
           </div>
           <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
               <!-- Temperature Control -->
               <div class="text-center">
-                <div class="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                  <.icon name="hero-fire" class="h-8 w-8 text-red-600" />
+                <div class="mx-auto w-16 h-16 bg-red-100 dark:bg-red-800 rounded-full flex items-center justify-center mb-4">
+                  <.icon name="hero-fire" class="h-8 w-8 text-red-600 dark:text-red-200" />
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-3">Temperature</h3>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Temperature</h3>
                 
                 <!-- Current Reading -->
                 <div class="mb-4">
-                  <div class="text-3xl font-bold text-red-600">
+                  <div class="text-3xl font-bold text-red-600 dark:text-red-400">
                     <%= format_integer(@greenhouse.current_temperature) %>°C
                   </div>
-                  <div class="text-sm text-gray-500">Current</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">Current</div>
                 </div>
                 
                 <!-- Target Setting -->
@@ -305,13 +305,13 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
                         class="w-full h-2 bg-red-200 rounded-lg appearance-none cursor-pointer slider-red"
                       />
                     </form>
-                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                       <span>0°C</span>
                       <span>50°C</span>
                     </div>
                   </div>
                   <div class="text-center">
-                    <div class="text-lg font-semibold text-red-600">
+                    <div class="text-lg font-semibold text-red-600 dark:text-red-400">
                       Target: <%= format_integer(@temp_temperature || @greenhouse.desired_temperature || 20) %>°C
                     </div>
                   </div>
@@ -320,17 +320,17 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
 
               <!-- Humidity Control -->
               <div class="text-center">
-                <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <.icon name="hero-cloud" class="h-8 w-8 text-blue-600" />
+                <div class="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center mb-4">
+                  <.icon name="hero-cloud" class="h-8 w-8 text-blue-600 dark:text-blue-200" />
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-3">Humidity</h3>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Humidity</h3>
                 
                 <!-- Current Reading -->
                 <div class="mb-4">
-                  <div class="text-3xl font-bold text-blue-600">
+                  <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
                     <%= format_integer(@greenhouse.current_humidity) %>%
                   </div>
-                  <div class="text-sm text-gray-500">Current</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">Current</div>
                 </div>
                 
                 <!-- Target Setting -->
@@ -347,13 +347,13 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
                         class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer slider-blue"
                       />
                     </form>
-                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                       <span>0%</span>
                       <span>100%</span>
                     </div>
                   </div>
                   <div class="text-center">
-                    <div class="text-lg font-semibold text-blue-600">
+                    <div class="text-lg font-semibold text-blue-600 dark:text-blue-400">
                       Target: <%= format_integer(@temp_humidity || @greenhouse.desired_humidity || 50) %>%
                     </div>
                   </div>
@@ -362,17 +362,17 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
 
               <!-- Light Control -->
               <div class="text-center">
-                <div class="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-                  <.icon name="hero-sun" class="h-8 w-8 text-yellow-600" />
+                <div class="mx-auto w-16 h-16 bg-yellow-100 dark:bg-yellow-800 rounded-full flex items-center justify-center mb-4">
+                  <.icon name="hero-sun" class="h-8 w-8 text-yellow-600 dark:text-yellow-200" />
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-3">Light</h3>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Light</h3>
                 
                 <!-- Current Reading -->
                 <div class="mb-4">
-                  <div class="text-3xl font-bold text-yellow-600">
+                  <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
                     <%= format_integer(@greenhouse.current_light) %>%
                   </div>
-                  <div class="text-sm text-gray-500">Current</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">Current</div>
                 </div>
                 
                 <!-- Target Setting -->
@@ -389,13 +389,13 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
                         class="w-full h-2 bg-yellow-200 rounded-lg appearance-none cursor-pointer slider-yellow"
                       />
                     </form>
-                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                       <span>0%</span>
                       <span>100%</span>
                     </div>
                   </div>
                   <div class="text-center">
-                    <div class="text-lg font-semibold text-yellow-600">
+                    <div class="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
                       Target: <%= format_integer(@temp_light || @greenhouse.desired_light || 50) %>%
                     </div>
                   </div>
@@ -407,15 +407,15 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
 
         <!-- Recent Events -->
         <div class="mt-8">
-          <div class="bg-white shadow rounded-lg">
-            <div class="px-6 py-4 border-b border-gray-200">
-              <h2 class="text-lg font-medium text-gray-900">Recent Events</h2>
+          <div class="bg-white dark:bg-gray-800 shadow rounded-lg transition-colors duration-200">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Recent Events</h2>
             </div>
             <div class="p-6">
               <%= if length(@greenhouse.events) > 0 do %>
                 <div class="space-y-2">
                   <%= for event <- Enum.take(@greenhouse.events, 10) do %>
-                    <div class="flex items-center space-x-3 py-2 px-3 bg-gray-50 rounded">
+                    <div class="flex items-center space-x-3 py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded transition-colors duration-200">
                       <div class="flex-shrink-0">
                         <div class={[
                           "w-2 h-2 rounded-full",
@@ -423,15 +423,15 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
                         ]}></div>
                       </div>
                       <div class="flex-1 min-w-0 flex items-center space-x-3">
-                        <span class="text-sm font-medium text-gray-900 whitespace-nowrap">
+                        <span class="text-sm font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
                           <%= format_event_type(event.event_type) %>
                         </span>
-                        <span class="text-sm text-gray-600">
+                        <span class="text-sm text-gray-600 dark:text-gray-300">
                           <%= format_event_data(event) %>
                         </span>
                       </div>
                       <div class="flex-shrink-0">
-                        <span class="text-xs text-gray-400 whitespace-nowrap">
+                        <span class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                           <%= format_timestamp(event.created) %>
                         </span>
                       </div>
@@ -439,7 +439,7 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
                   <% end %>
                 </div>
               <% else %>
-                <p class="text-gray-500 text-center py-8">No events recorded yet</p>
+                <p class="text-gray-500 dark:text-gray-400 text-center py-8">No events recorded yet</p>
               <% end %>
             </div>
           </div>
@@ -512,10 +512,10 @@ defmodule GreenhouseTycoonWeb.GreenhouseLive do
     (state.desired_light && abs(state.current_light - state.desired_light) > 30)
   end
 
-  defp status_color_class(:active), do: "bg-green-100 text-green-800"
-  defp status_color_class(:warning), do: "bg-yellow-100 text-yellow-800"
-  defp status_color_class(:inactive), do: "bg-gray-100 text-gray-800"
-  defp status_color_class(_), do: "bg-red-100 text-red-800"
+  defp status_color_class(:active), do: "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100"
+  defp status_color_class(:warning), do: "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100"
+  defp status_color_class(:inactive), do: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+  defp status_color_class(_), do: "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
 
   # Helper function to format numeric values as integers
   defp format_integer(value) when is_number(value), do: trunc(value)

@@ -1,4 +1,4 @@
-defmodule GreenhouseTycoon.MixProject do
+defmodule GreenhouseTycoon.Umbrella.MixProject do
   use Mix.Project
 
   def project do

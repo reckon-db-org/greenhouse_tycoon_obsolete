@@ -23,9 +23,33 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+
+// Theme hooks
+let Hooks = {}
+
+Hooks.ThemeManager = {
+  mounted() {
+    // Listen for theme change events from server
+    this.handleEvent("theme_changed", ({theme}) => {
+      this.applyTheme(theme)
+      localStorage.setItem('theme', theme)
+    })
+  },
+  
+  applyTheme(theme) {
+    const html = document.documentElement
+    if (theme === 'dark') {
+      html.classList.add('dark')
+    } else {
+      html.classList.remove('dark')
+    }
+  }
+}
+
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken}
+  params: {_csrf_token: csrfToken},
+  hooks: Hooks
 })
 
 // Handle close modal events from server
@@ -42,6 +66,7 @@ window.addEventListener("phx:close-modal", (e) => {
     }
   }
 })
+
 
 // Show progress bar on live navigation and form submits
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})

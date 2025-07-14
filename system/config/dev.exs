@@ -1,84 +1,5 @@
 import Config
 
-# Configure your database
-config :greenhouse_tycoon, GreenhouseTycoon.Repo,
-  database: Path.expand("../regulate_greenhouse_dev.db", __DIR__),
-  pool_size: 5,
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true
-
-config :manage_crops, ManageCrops.Repo,
-  database: Path.expand("../manage_crops_dev.db", __DIR__),
-  pool_size: 5,
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true
-
-config :procure_supplies, ProcureSupplies.Repo,
-  database: Path.expand("../procure_supplies_dev.db", __DIR__),
-  pool_size: 5,
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true
-
-config :maintain_equipment, MaintainEquipment.Repo,
-  database: Path.expand("../maintain_equipment_dev.db", __DIR__),
-  pool_size: 5,
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true
-
-config :manage_greenhouse, ManageGreenhouse.Repo,
-  database: Path.expand("../manage_greenhouse_dev.db", __DIR__),
-  pool_size: 5,
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true
-
-# Configure ExESDB with increased timeout for development
-config :ex_esdb,
-  data_dir: "tmp/reg_gh",
-  store_id: :reg_gh,
-  timeout: 10_000,  # Increased from 2_000 to handle multiple greenhouse creation
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
-
-# Also configure the khepri-specific settings
-config :ex_esdb, :khepri,
-  data_dir: "tmp/reg_gh",
-  store_id: :reg_gh,
-  timeout: 10_000,  # Increased from 2_000 to handle multiple greenhouse creation
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
-
-# Configure ExESDB for ManageCrops
-config :ex_esdb, :manage_crops,
-  data_dir: "tmp/manage_crops",
-  store_id: :manage_crops,
-  timeout: 10_000,
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
-
-# Configure ExESDB for ProcureSupplies
-config :ex_esdb, :procure_supplies,
-  data_dir: "tmp/procure_supplies",
-  store_id: :procure_supplies,
-  timeout: 10_000,
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
-
-# Configure ExESDB for MaintainEquipment
-config :ex_esdb, :maintain_equipment,
-  data_dir: "tmp/maintain_equipment",
-  store_id: :maintain_equipment,
-  timeout: 10_000,
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
-
-# Configure ExESDB for ManageGreenhouse
-config :ex_esdb, :manage_greenhouse,
-  data_dir: "tmp/manage_greenhouse",
-  store_id: :manage_greenhouse,
-  timeout: 10_000,
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
-
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
@@ -136,7 +57,7 @@ config :greenhouse_tycoon_web, GreenhouseTycoonWeb.Endpoint,
 config :greenhouse_tycoon_web, dev_routes: true
 
 # Include MFA metadata for better debugging in development logs
-config :logger, :console, 
+config :logger, :console,
   format: "$time [$level] $metadata$message\n",
   metadata: [:mfa],
   level: :debug
@@ -158,13 +79,12 @@ config :swoosh, :api_client, false
 config :phoenix, :stacktrace_depth, 20
 
 # Configure specific modules' log levels - only show errors
-# Cache population configuration for development 
+# Cache population configuration for development
 # Enable automatic cache population on startup - useful for development
-config :greenhouse_tycoon, :populate_cache_on_startup, true
-config :manage_crops, :populate_cache_on_startup, true
-config :procure_supplies, :populate_cache_on_startup, true
-config :maintain_equipment, :populate_cache_on_startup, true
-config :manage_greenhouse, :populate_cache_on_startup, true
+# config :greenhouse_tycoon, :populate_cache_on_startup, true
+
+# Individual apps configure their own ExESDB and Commanded settings
+# App-specific configs are imported through the umbrella config.exs
 
 config :logger,
   compile_time_purge_matching: [

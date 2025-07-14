@@ -5,7 +5,7 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
   require Logger
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     if connected?(socket) do
       # Subscribe to real-time greenhouse updates
       Phoenix.PubSub.subscribe(GreenhouseTycoon.PubSub, "greenhouse_updates")
@@ -13,11 +13,14 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
       :timer.send_interval(5000, self(), :refresh)
     end
 
+    theme = GreenhouseTycoonWeb.ThemeManager.get_theme(session)
+
     socket =
       socket
       |> assign(:greenhouses, load_greenhouses())
       |> assign(:countries, load_countries())
       |> assign(:page_title, "Greenhouse Dashboard")
+      |> assign(:theme, theme)
 
     {:ok, socket}
   end
@@ -35,6 +38,31 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
   @impl true
   def handle_info({:greenhouse_updated, _read_model, _event_type}, socket) do
     {:noreply, assign(socket, :greenhouses, load_greenhouses())}
+  end
+
+  @impl true
+  def handle_info({:theme_changed, new_theme}, socket) do
+    # Update the theme in the socket and push event to the hook
+    socket = 
+      socket
+      |> assign(:theme, new_theme)
+      |> push_event("theme_changed", %{theme: new_theme})
+    
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("toggle_theme", _params, socket) do
+    current_theme = socket.assigns.theme
+    new_theme = if current_theme == "light", do: "dark", else: "light"
+    
+    # Update the theme in the socket and push event to client
+    socket = 
+      socket
+      |> assign(:theme, new_theme)
+      |> push_event("theme_changed", %{theme: new_theme})
+    
+    {:noreply, socket}
   end
 
   @impl true
@@ -88,16 +116,22 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-900" id="theme-manager" phx-hook="ThemeManager">
       <!-- Header -->
-      <div class="bg-white shadow">
+      <div class="bg-white dark:bg-gray-800 shadow">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex justify-between h-16">
             <div class="flex items-center">
               <.icon name="hero-home" class="h-8 w-8 text-green-600 mr-3" />
-              <h1 class="text-2xl font-bold text-gray-900">Greenhouse Control Center</h1>
+              <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Greenhouse Control Center</h1>
             </div>
             <div class="flex items-center space-x-4">
+              <!-- Theme Toggle -->
+              <.live_component
+                module={GreenhouseTycoonWeb.ThemeToggleComponent}
+                id="theme-toggle"
+                theme={@theme}
+              />
               <.button
                 phx-click={show_modal("new-greenhouse-modal")}
                 class="bg-green-600 hover:bg-green-700 text-white"
@@ -113,23 +147,23 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Stats Overview -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
             <div class="p-5">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
-                  <.icon name="hero-home-modern" class="h-6 w-6 text-gray-400" />
+                  <.icon name="hero-home-modern" class="h-6 w-6 text-gray-400 dark:text-gray-300" />
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Total Greenhouses</dt>
-                    <dd class="text-lg font-medium text-gray-900">{length(@greenhouses)}</dd>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Greenhouses</dt>
+                    <dd class="text-lg font-medium text-gray-900 dark:text-white">{length(@greenhouses)}</dd>
                   </dl>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
             <div class="p-5">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -137,8 +171,8 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Active</dt>
-                    <dd class="text-lg font-medium text-gray-900">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Active</dt>
+                    <dd class="text-lg font-medium text-gray-900 dark:text-white">
                       {@greenhouses |> Enum.count(&(&1.status == :active))}
                     </dd>
                   </dl>
@@ -147,7 +181,7 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
             </div>
           </div>
 
-          <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
             <div class="p-5">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -155,8 +189,8 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Needs Attention</dt>
-                    <dd class="text-lg font-medium text-gray-900">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Needs Attention</dt>
+                    <dd class="text-lg font-medium text-gray-900 dark:text-white">
                       {@greenhouses |> Enum.count(&(&1.status == :warning))}
                     </dd>
                   </dl>
@@ -165,7 +199,7 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
             </div>
           </div>
 
-          <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
             <div class="p-5">
               <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -173,8 +207,8 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Avg. Temperature</dt>
-                    <dd class="text-lg font-medium text-gray-900">
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Avg. Temperature</dt>
+                    <dd class="text-lg font-medium text-gray-900 dark:text-white">
                       {calculate_avg_temperature(@greenhouses)}°C
                     </dd>
                   </dl>
@@ -188,7 +222,7 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <%= for greenhouse <- @greenhouses do %>
             <.link navigate={~p"/greenhouse/#{greenhouse.id}"} class="block">
-              <div class="bg-white overflow-hidden shadow-lg rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border-2 border-transparent hover:border-green-500 hover:ring-2 hover:ring-green-200 hover:ring-opacity-50">
+              <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border-2 border-transparent hover:border-green-500 hover:ring-2 hover:ring-green-200 hover:ring-opacity-50">
               <!-- Card Header -->
               <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
                 <div class="flex items-center justify-between">
@@ -223,12 +257,12 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
                 <div class="grid grid-cols-3 gap-4 mb-6">
                   <!-- Temperature -->
                   <div class="text-center">
-                    <div class="bg-red-50 rounded-full p-3 w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                    <div class="bg-red-50 dark:bg-red-900/20 rounded-full p-3 w-12 h-12 flex items-center justify-center mx-auto mb-2">
                       <.icon name="hero-fire" class="h-6 w-6 text-red-500" />
                     </div>
-                    <p class="text-2xl font-bold text-red-600">{format_integer(greenhouse.current_temperature)}°</p>
-                    <p class="text-xs text-gray-500 font-medium">Temperature</p>
-                    <p class="text-xs text-gray-400 mt-1">
+                    <p class="text-2xl font-bold text-red-600 dark:text-red-400">{format_integer(greenhouse.current_temperature)}°</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Temperature</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
                       <%= if greenhouse.desired_temperature do %>
                         Target: {format_integer(greenhouse.desired_temperature)}°
                       <% else %>
@@ -239,12 +273,12 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
 
                   <!-- Humidity -->
                   <div class="text-center">
-                    <div class="bg-blue-50 rounded-full p-3 w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-full p-3 w-12 h-12 flex items-center justify-center mx-auto mb-2">
                       <.icon name="hero-cloud" class="h-6 w-6 text-blue-500" />
                     </div>
-                    <p class="text-2xl font-bold text-blue-600">{format_integer(greenhouse.current_humidity)}%</p>
-                    <p class="text-xs text-gray-500 font-medium">Humidity</p>
-                    <p class="text-xs text-gray-400 mt-1">
+                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{format_integer(greenhouse.current_humidity)}%</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Humidity</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
                       <%= if greenhouse.desired_humidity do %>
                         Target: {format_integer(greenhouse.desired_humidity)}%
                       <% else %>
@@ -255,12 +289,12 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
 
                   <!-- Light -->
                   <div class="text-center">
-                    <div class="bg-yellow-50 rounded-full p-3 w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                    <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-full p-3 w-12 h-12 flex items-center justify-center mx-auto mb-2">
                       <.icon name="hero-sun" class="h-6 w-6 text-yellow-500" />
                     </div>
-                    <p class="text-2xl font-bold text-yellow-600">{format_integer(greenhouse.current_light)}%</p>
-                    <p class="text-xs text-gray-500 font-medium">Light</p>
-                    <p class="text-xs text-gray-400 mt-1">
+                    <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{format_integer(greenhouse.current_light)}%</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Light</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
                       <%= if greenhouse.desired_light do %>
                         Target: {format_integer(greenhouse.desired_light)}%
                       <% else %>
@@ -271,18 +305,18 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
                 </div>
 
                 <!-- Activity Info -->
-                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-2">
-                      <.icon name="hero-chart-bar" class="h-4 w-4 text-gray-500" />
-                      <span class="text-sm font-medium text-gray-700">Activity</span>
+                      <.icon name="hero-chart-bar" class="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Activity</span>
                     </div>
-                    <span class="text-sm font-bold text-gray-900">{greenhouse.event_count} events</span>
+                    <span class="text-sm font-bold text-gray-900 dark:text-white">{greenhouse.event_count} events</span>
                   </div>
                   <%= if greenhouse.last_updated do %>
                     <div class="flex items-center space-x-2 mt-2">
-                      <.icon name="hero-clock" class="h-4 w-4 text-gray-400" />
-                      <span class="text-xs text-gray-500">
+                      <.icon name="hero-clock" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                      <span class="text-xs text-gray-500 dark:text-gray-400">
                         Last updated: {format_time_ago(greenhouse.last_updated)}
                       </span>
                     </div>
@@ -309,8 +343,8 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
           <div class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="country" class="block text-sm font-medium text-gray-700">Country</label>
-                <select name="country" id="country" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                <label for="country" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Country</label>
+                <select name="country" id="country" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
                   <option value="" disabled selected>Select a country...</option>
                   <%= for country <- @countries do %>
                     <option value={country}><%= country %></option>
@@ -318,11 +352,11 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
                 </select>
               </div>
               <div>
-                <label for="city" class="block text-sm font-medium text-gray-700">City</label>
-                <input type="text" name="city" id="city" placeholder="Enter city name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                <label for="city" class="block text-sm font-medium text-gray-700 dark:text-gray-300">City</label>
+                <input type="text" name="city" id="city" placeholder="Enter city name" class="mt-1 block w-full border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
               </div>
             </div>
-            <div class="text-sm text-gray-600">
+            <div class="text-sm text-gray-600 dark:text-gray-400">
               <p>Select your country and enter the city name for weather-based automation.</p>
               <p>This will automatically fetch weather data to simulate realistic greenhouse conditions.</p>
             </div>
@@ -477,7 +511,7 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
     {:safe, """
     <div class="flex items-center space-x-1">
       <span class="text-base">#{flag}</span>
-      <span class="text-sm text-gray-600">#{city}, #{country}</span>
+      <span class="text-sm text-gray-600 dark:text-gray-400">#{city}, #{country}</span>
     </div>
     """}
   end

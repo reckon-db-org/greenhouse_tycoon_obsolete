@@ -47,77 +47,9 @@ config :swoosh, :api_client, false
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 
-# Configure ExESDB for testing
-config :ex_esdb,
-  data_dir: "tmp/reg_gh_test",
-  store_id: :reg_gh_test,
-  timeout: 2_000,
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
+# Individual apps configure their own ExESDB instances for testing
 
-config :ex_esdb, :khepri,
-  data_dir: "tmp/reg_gh_test",
-  store_id: :reg_gh_test,
-  timeout: 2_000,
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
-
-# Configure ExESDB for ManageCrops testing
-config :ex_esdb, :manage_crops_test,
-  data_dir: "tmp/manage_crops_test",
-  store_id: :manage_crops_test,
-  timeout: 2_000,
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
-
-# Configure ExESDB for ProcureSupplies testing
-config :ex_esdb, :procure_supplies_test,
-  data_dir: "tmp/procure_supplies_test",
-  store_id: :procure_supplies_test,
-  timeout: 2_000,
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
-
-# Configure ExESDB for MaintainEquipment testing
-config :ex_esdb, :maintain_equipment_test,
-  data_dir: "tmp/maintain_equipment_test",
-  store_id: :maintain_equipment_test,
-  timeout: 2_000,
-  db_type: :single,
-  pub_sub: :ex_esdb_pubsub
-
-# Configure the Commanded application for testing
-config :greenhouse_tycoon, GreenhouseTycoon.CommandedApp,
-  event_store: [
-    adapter: ExESDB.Commanded.Adapter,
-    store_id: :reg_gh_test,
-    stream_prefix: "regulate_greenhouse_",
-    serializer: Jason
-  ]
-
-config :manage_crops, ManageCrops.CommandedApp,
-  event_store: [
-    adapter: ExESDB.Commanded.Adapter,
-    store_id: :manage_crops_test,
-    stream_prefix: "manage_crops_",
-    serializer: Jason
-  ]
-
-config :procure_supplies, ProcureSupplies.CommandedApp,
-  event_store: [
-    adapter: ExESDB.Commanded.Adapter,
-    store_id: :procure_supplies_test,
-    stream_prefix: "procure_supplies_",
-    serializer: Jason
-  ]
-
-config :maintain_equipment, MaintainEquipment.CommandedApp,
-  event_store: [
-    adapter: ExESDB.Commanded.Adapter,
-    store_id: :maintain_equipment_test,
-    stream_prefix: "maintain_equipment_",
-    serializer: Jason
-  ]
+# Individual apps configure their own Commanded applications for testing
 
 # Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,

@@ -8,9 +8,10 @@ const path = require("path")
 module.exports = {
   content: [
     "./js/**/*.js",
-    "../lib/regulate_greenhouse_web.ex",
-    "../lib/regulate_greenhouse_web/**/*.*ex"
+    "../lib/greenhouse_tycoon_web.ex",
+    "../lib/greenhouse_tycoon_web/**/*.*ex"
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
