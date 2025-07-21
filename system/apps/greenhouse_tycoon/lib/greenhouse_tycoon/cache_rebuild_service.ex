@@ -201,7 +201,7 @@ defmodule GreenhouseTycoon.CacheRebuildService do
   # Private functions
   
   defp get_store_id do
-    Application.get_env(:ex_esdb, :khepri)[:store_id] || :shared_default
+    Application.get_env(:greenhouse_tycoon, :ex_esdb)[:store_id] || :greenhouse_tycoon
   end
 
   defp process_streams(stream_ids) do

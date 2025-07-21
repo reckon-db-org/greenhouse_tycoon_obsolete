@@ -10,8 +10,10 @@ defmodule GreenhouseTycoon.CommandedApp do
     otp_app: :greenhouse_tycoon,
     event_store: [
       adapter: ExESDB.Commanded.Adapter,
-      store_id: :gh_tyc,
-      stream_prefix: "greenhouse_tycoon_"
+      store_id: :greenhouse_tycoon,
+      stream_prefix: "greenhouse_tycoon_",
+      serializer: Jason,
+      event_type_mapper: GreenhouseTycoon.EventTypeMapper
     ],
     pubsub: [
       phoenix_pubsub: [
@@ -20,11 +22,7 @@ defmodule GreenhouseTycoon.CommandedApp do
     ],
     # Disable automatic subscriptions to prevent stream-based projections
     # We handle event subscriptions manually through the EventTypeProjectionManager
-    subscribe_to_all_streams?: false,
-    # Disable snapshotting to avoid version handling issues
-    snapshotting: %{
-      snapshot_every: nil
-    }
+    subscribe_to_all_streams?: false
 
   # Configure the event store adapter for command dispatch only
   router(GreenhouseTycoon.Router)

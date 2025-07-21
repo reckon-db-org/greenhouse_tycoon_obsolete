@@ -65,8 +65,8 @@ defmodule GreenhouseTycoon.CachePopulationService do
     
     if enabled do
       Logger.info("CachePopulationService: Starting cache population service")
-      # Start population process after a short delay to allow other services to start
-      Process.send_after(self(), :start_population, 2_000)
+      # Start population process after a longer delay to allow ExESDB leadership to activate
+      Process.send_after(self(), :start_population, 10_000)
     else
       Logger.info("CachePopulationService: Cache population disabled")
     end
@@ -220,7 +220,7 @@ defmodule GreenhouseTycoon.CachePopulationService do
   # Private functions
   
   defp get_store_id do
-    Application.get_env(:ex_esdb, :khepri)[:store_id] || :shared_default
+    Application.get_env(:greenhouse_tycoon, :ex_esdb)[:store_id] || :greenhouse_tycoon
   end
   
   defp perform_cache_population do

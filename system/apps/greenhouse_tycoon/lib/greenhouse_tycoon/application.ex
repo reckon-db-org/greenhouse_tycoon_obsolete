@@ -8,6 +8,10 @@ defmodule GreenhouseTycoon.Application do
 
   @impl true
   def start(_type, _args) do
+    enhanced_config =
+      Application.get_env(:greenhouse_tycoon, :ex_esdb, [])
+      |> Keyword.put(:otp_app, :greenhouse_tycoon)
+
     children = [
       {DNSCluster, query: Application.get_env(:greenhouse_tycoon, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: GreenhouseTycoon.PubSub},
@@ -15,6 +19,8 @@ defmodule GreenhouseTycoon.Application do
       {Finch, name: GreenhouseTycoon.Finch},
       # Start the APIs Countries service for country data
       {Apis.Countries, [true]},
+      # Start ExESDB system for this app
+      {ExESDB.System, enhanced_config},
       # Start the cache service for read models
       GreenhouseTycoon.CacheService,
       # Start the infrastructure supervisor for reliability components
@@ -23,7 +29,7 @@ defmodule GreenhouseTycoon.Application do
       GreenhouseTycoon.CommandedApp,
       # Start the event-type-based projection manager
       GreenhouseTycoon.Projections.EventTypeProjectionManager,
-      # Start the cache population service for startup cache rebuilding
+      # Cache population service enabled to rebuild cache from events
       GreenhouseTycoon.CachePopulationService,
       # Start the weather measurement service for automatic weather-based measurements
       GreenhouseTycoon.WeatherMeasurementService

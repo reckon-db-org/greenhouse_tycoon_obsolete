@@ -8,6 +8,52 @@ config :logger, :console,
 # Individual apps configure their own ExESDB instances
 # This umbrella runtime config only handles shared components
 
+# Runtime configuration only applies in production
+if config_env() == :prod do
+  # Ensure data directory exists
+  data_dir = System.get_env("GH_TYC_DATA_DIR") || "/data/greenhouse_tycoon"
+  File.mkdir_p!(data_dir)
+
+  # Configure ExESDB for greenhouse_tycoon runtime
+  config :greenhouse_tycoon, :ex_esdb,
+    data_dir: data_dir,
+    store_id: String.to_atom(System.get_env("GH_TYC_STORE_ID") || "greenhouse_tycoon"),
+    timeout: String.to_integer(System.get_env("GH_TYC_TIMEOUT") || "15000"),
+    db_type: String.to_atom(System.get_env("GH_TYC_DB_TYPE") || "cluster"),
+    pub_sub: String.to_atom(System.get_env("GH_TYC_PUB_SUB") || "ex_esdb_pubsub"),
+    store_description: System.get_env("GH_TYC_STORE_DESCRIPTION") || "Greenhouse Tycoon Store",
+    store_tags:
+      (System.get_env("GH_TYC_STORE_TAGS") || "greenhouse_tycoon,production")
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+  # Configure Commanded for runtime
+  config :greenhouse_tycoon, GreenhouseTycoon.CommandedApp,
+    event_store: [
+      adapter: ExESDB.Commanded.Adapter,
+      store_id: String.to_atom(System.get_env("GH_TYC_STORE_ID") || "greenhouse_tycoon"),
+      stream_prefix: "greenhouse_tycoon_",
+      serializer: Jason,
+      event_type_mapper: GreenhouseTycoon.EventTypeMapper
+    ]
+
+  # Configure libcluster for runtime - following the rule to use libcluster completely
+  config :libcluster,
+    topologies: [
+      greenhouse_tycoon: [
+        strategy: Cluster.Strategy.Gossip,
+        config: [
+          port: String.to_integer(System.get_env("GH_TYC_CLUSTER_PORT") || "45892"),
+          if_addr: System.get_env("GH_TYC_CLUSTER_IF_ADDR") || "0.0.0.0",
+          multicast_addr: System.get_env("GH_TYC_CLUSTER_MULTICAST_ADDR") || "255.255.255.255",
+          broadcast_only: true,
+          secret: System.get_env("GH_TYC_CLUSTER_SECRET") || "gh_tyc_cluster_secret"
+        ]
+      ]
+    ]
+end
+
 # The secret key base is used to sign/encrypt cookies and other secrets.
 # A default value is used in config/dev.exs and config/test.exs but you
 # want to use a different value for prod and you most likely don't want

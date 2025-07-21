@@ -49,7 +49,28 @@ config :phoenix, :plug_init_mode, :runtime
 
 # Individual apps configure their own ExESDB instances for testing
 
-# Individual apps configure their own Commanded applications for testing
+# Configure ExESDB for greenhouse_tycoon testing
+config :greenhouse_tycoon, :ex_esdb,
+  store_id: :greenhouse_tycoon_test,
+  data_dir: "data/greenhouse_tycoon_test",
+  pub_sub: :ex_esdb_pubsub,
+  db_type: :single,
+  timeout: 2_000,
+  reader_idle_ms: 5_000,
+  writer_idle_ms: 5_000
+
+# Configure the Commanded application for testing
+config :greenhouse_tycoon, GreenhouseTycoon.CommandedApp,
+  event_store: [
+    adapter: ExESDB.Commanded.Adapter,
+    store_id: :greenhouse_tycoon_test,
+    stream_prefix: "greenhouse_tycoon_test_",
+    serializer: Jason,
+    event_type_mapper: GreenhouseTycoon.EventTypeMapper
+  ]
+
+# Ensure test directory exists
+File.mkdir_p!("data/greenhouse_tycoon_test")
 
 # Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,

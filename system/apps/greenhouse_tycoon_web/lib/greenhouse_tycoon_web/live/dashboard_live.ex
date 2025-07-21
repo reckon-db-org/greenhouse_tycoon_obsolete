@@ -43,11 +43,11 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
   @impl true
   def handle_info({:theme_changed, new_theme}, socket) do
     # Update the theme in the socket and push event to the hook
-    socket = 
+    socket =
       socket
       |> assign(:theme, new_theme)
       |> push_event("theme_changed", %{theme: new_theme})
-    
+
     {:noreply, socket}
   end
 
@@ -55,18 +55,22 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
   def handle_event("toggle_theme", _params, socket) do
     current_theme = socket.assigns.theme
     new_theme = if current_theme == "light", do: "dark", else: "light"
-    
+
     # Update the theme in the socket and push event to client
-    socket = 
+    socket =
       socket
       |> assign(:theme, new_theme)
       |> push_event("theme_changed", %{theme: new_theme})
-    
+
     {:noreply, socket}
   end
 
   @impl true
-  def handle_event("initialize_greenhouse", %{"greenhouse_id" => greenhouse_id, "country" => country, "city" => city}, socket) do
+  def handle_event(
+        "initialize_greenhouse",
+        %{"greenhouse_id" => greenhouse_id, "country" => country, "city" => city},
+        socket
+      ) do
     require Logger
     Logger.info("Dashboard: Initializing greenhouse #{greenhouse_id} in #{city}, #{country}")
 
@@ -76,14 +80,21 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
         location = GreenhouseTycoon.GeocodingService.coordinates_to_location_string(lat, lon)
         Logger.info("Dashboard: Successfully geocoded #{city}, #{country} to #{location}")
         create_greenhouse_with_location(greenhouse_id, location, city, country, socket)
-      
+
       {:error, reason} ->
         Logger.error("Dashboard: Failed to geocode #{city}, #{country}: #{inspect(reason)}")
-        socket = put_flash(socket, :error, "Failed to find location: #{city}, #{country}. Please try a different city.")
+
+        socket =
+          put_flash(
+            socket,
+            :error,
+            "Failed to find location: #{city}, #{country}. Please try a different city."
+          )
+
         {:noreply, socket}
     end
   end
-  
+
   defp create_greenhouse_with_location(greenhouse_id, location, city, country, socket) do
     case API.create_greenhouse(greenhouse_id, greenhouse_id, location, city, country) do
       :ok ->
@@ -111,7 +122,6 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
         {:noreply, socket}
     end
   end
-  
 
   @impl true
   def render(assigns) do
@@ -455,10 +465,28 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
 
   defp load_countries do
     case API.get_countries() do
-      {:ok, countries} -> countries
-      {:error, _} -> 
+      {:ok, countries} ->
+        countries
+
+      {:error, _} ->
         # Fallback to a basic list if the Countries service is unavailable
-        ["United States", "Canada", "United Kingdom", "Germany", "France", "Italy", "Spain", "Netherlands", "Australia", "Japan", "China", "Brazil", "Mexico", "India", "South Africa"]
+        [
+          "United States",
+          "Canada",
+          "United Kingdom",
+          "Germany",
+          "France",
+          "Italy",
+          "Spain",
+          "Netherlands",
+          "Australia",
+          "Japan",
+          "China",
+          "Brazil",
+          "Mexico",
+          "India",
+          "South Africa"
+        ]
     end
   end
 
@@ -486,6 +514,7 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
   defp format_integer(value), do: value
 
   defp format_time_ago(nil), do: "Never"
+
   defp format_time_ago(datetime) do
     case DateTime.diff(DateTime.utc_now(), datetime, :second) do
       seconds when seconds < 60 -> "#{seconds}s ago"
@@ -494,7 +523,7 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
       seconds -> "#{div(seconds, 86400)}d ago"
     end
   end
-  
+
   defp get_country_flag(country) do
     case API.get_country_flag(country) do
       {:ok, flag} -> flag
@@ -508,11 +537,12 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
     city = greenhouse.city || "Unknown city"
     country = greenhouse.country || "Unknown country"
 
-    {:safe, """
-    <div class="flex items-center space-x-1">
-      <span class="text-base">#{flag}</span>
-      <span class="text-sm text-gray-600 dark:text-gray-400">#{city}, #{country}</span>
-    </div>
-    """}
+    {:safe,
+     """
+     <div class="flex items-center space-x-1">
+       <span class="text-base">#{flag}</span>
+       <span class="text-sm text-gray-600 dark:text-gray-400">#{city}, #{country}</span>
+     </div>
+     """}
   end
 end

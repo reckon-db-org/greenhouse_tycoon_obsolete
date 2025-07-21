@@ -10,7 +10,7 @@ defmodule GreenhouseTycoon.MixProject do
       app: :greenhouse_tycoon,
       version: @version,
       build_path: "../../_build",
-      config_path: "config/config.exs",
+      config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixir: @elixir_version,
@@ -27,7 +27,15 @@ defmodule GreenhouseTycoon.MixProject do
   def application do
     [
       mod: {GreenhouseTycoon.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [
+        :logger,
+        :runtime_tools,
+        :commanded,
+        :ex_esdb_commanded,
+        :khepri,
+        :ra,
+        :seshat
+      ]
     ]
   end
 
@@ -48,11 +56,9 @@ defmodule GreenhouseTycoon.MixProject do
       {:cachex, "~> 3.6"},
       # APIs app for countries and external services
       {:apis, in_umbrella: true},
-      # Ensure ex_esdb_gater compiles first as it contains schemas
-      # Then ex_esdb which may depend on gater schemas
-      {:ex_esdb, "~> 0.1.4"},
-      # Finally ex_esdb_commanded which depends on both
-      {:ex_esdb_commanded, "0.1.3"}
+      {:ex_esdb, "~> 0.4.6"},
+      {:ex_esdb_commanded, "0.2.4"},
+      {:commanded_ecto_projections, "~> 1.4"}
     ]
   end
 

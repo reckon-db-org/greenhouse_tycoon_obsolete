@@ -19,6 +19,19 @@ import Config
 config :greenhouse_tycoon_web,
   generators: [context_app: :greenhouse_tycoon, binary_id: true]
 
+# Public configuration in line with Landing Site standards
+# Configures the mailer
+#
+# By default it uses the "Local" adapter which stores the emails
+# locally. You can see the emails in your browser, at "/dev/mailbox".
+#
+# For production it's recommended to configure a different adapter
+# at the `config/runtime.exs`.
+config :greenhouse_tycoon, GreenhouseTycoon.Mailer, adapter: Swoosh.Adapters.Local
+
+config :greenhouse_tycoon_web,
+  generators: [context_app: :greenhouse_tycoon]
+
 # Configures the endpoint
 config :greenhouse_tycoon_web, GreenhouseTycoonWeb.Endpoint,
   url: [host: "localhost"],
@@ -39,6 +52,21 @@ config :esbuild,
     cd: Path.expand("../apps/greenhouse_tycoon_web/assets", __DIR__),
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
+
+# Shared configuration for common libraries
+# Individual apps configure their own ExESDB instances
+
+# Configure ExESDB Gater (shared by all apps)
+config :ex_esdb_gater, :api, pub_sub: :ex_esdb_pubsub
+
+# ExESDB configuration is handled by individual apps
+# No shared ExESDB configuration needed - each app configures its own store
+
+# Reduce logging noise for clustering and storage libraries
+config :swarm, log_level: :error
+config :libcluster, log_level: :error
+config :khepri, log_level: :warning
+config :ra, log_level: :warning
 
 # Configure tailwind (the version is required)
 config :tailwind,
@@ -69,8 +97,56 @@ config :ex_esdb_gater, :api, pub_sub: :ex_esdb_pubsub
 # ExESDB configuration is handled by individual apps
 # No shared ExESDB configuration needed - each app configures its own store
 
-# Import individual app configurations
-import_config "../apps/greenhouse_tycoon/config/config.exs"
+# Configure libcluster for development
+# Disabled for umbrella mode - all apps run in single node
+config :libcluster,
+  topologies: [
+    # greenhouse_tycoon: [
+    #   strategy: Cluster.Strategy.Gossip,
+    #   config: [
+    #     port: 45_892,
+    #     if_addr: "0.0.0.0",
+    #     multicast_addr: "255.255.255.255",
+    #     broadcast_only: true,
+    #     secret: System.get_env("GH_TYC_CLUSTER_SECRET") || "gh_tyc_cluster_secret"
+    #   ]
+    # ]
+  ]
+
+# Configure Swarm
+config :swarm,
+  sync_nodes_timeout: 60_000,
+  max_restarts: 3,
+  max_seconds: 5
+
+# Configure ExESDB for greenhouse_tycoon
+config :greenhouse_tycoon, :ex_esdb,
+  data_dir: "data/greenhouse_tycoon",
+  store_id: :greenhouse_tycoon,
+  timeout: 10_000,
+  db_type: :single,
+  pub_sub: :ex_esdb_pubsub,
+  store_description: "Greenhouse Tycoon Event Store",
+  store_tags: ["greenhouse_tycoon", "demo", "event-sourcing", "development"]
+
+# Configure Commanded for greenhouse_tycoon
+config :greenhouse_tycoon, GreenhouseTycoon.CommandedApp,
+  event_store: [
+    adapter: ExESDB.Commanded.Adapter,
+    store_id: :greenhouse_tycoon,
+    stream_prefix: "greenhouse_tycoon_",
+    serializer: Jason,
+    event_type_mapper: GreenhouseTycoon.EventTypeMapper
+  ],
+  snapshotting: %{
+    GreenhouseTycoon.Greenhouse => [
+      snapshot_every: 5,
+      snapshot_version: 1
+    ]
+  }
+
+# Configure ExESDB Commanded Adapter
+config :ex_esdb_commanded_adapter, :event_type_mapper, GreenhouseTycoon.EventTypeMapper
 
 # Configure additional apps' Commanded integrations
 # Uncomment when creating these apps:

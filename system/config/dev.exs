@@ -86,6 +86,37 @@ config :phoenix, :stacktrace_depth, 20
 # Individual apps configure their own ExESDB and Commanded settings
 # App-specific configs are imported through the umbrella config.exs
 
+# Configure ExESDB for greenhouse_tycoon development
+config :greenhouse_tycoon, :ex_esdb,
+  store_id: :greenhouse_tycoon,
+  data_dir: "data/greenhouse_tycoon",
+  pub_sub: :ex_esdb_pubsub,
+  db_type: :single,
+  timeout: 15_000,
+  reader_idle_ms: 10_000,
+  writer_idle_ms: 10_000
+
+# Override libcluster configuration for single-node development
+# Since this is running as an umbrella app on a single node,
+# we disable clustering to avoid connection attempts to non-existent nodes
+config :libcluster,
+  topologies: []
+
+# Configure EmitterPool settings for development
+config :ex_esdb, :emitter_pools,
+  pool_size: 2,
+  max_overflow: 4,
+  eager_start: true
+
+# Suppress OS monitoring warnings
+config :os_mon,
+  start_cpu_sup: false,
+  start_disksup: false,
+  start_memsup: false
+
+# Ensure temp directory exists
+File.mkdir_p!("data/greenhouse_tycoon")
+
 config :logger,
   compile_time_purge_matching: [
     # Swarm modules - only show errors

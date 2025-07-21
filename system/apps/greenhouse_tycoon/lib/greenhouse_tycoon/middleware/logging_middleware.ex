@@ -1,7 +1,7 @@
 defmodule GreenhouseTycoon.Middleware.LoggingMiddleware do
   @moduledoc """
   Middleware for logging command routing and execution.
-  
+ 
   This middleware logs command routing, aggregate loading, and execution
   to help debug command handling issues.
   """

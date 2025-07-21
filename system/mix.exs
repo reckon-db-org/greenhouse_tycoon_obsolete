@@ -1,13 +1,16 @@
 defmodule GreenhouseTycoon.Umbrella.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+
   def project do
     [
       apps_path: "apps",
-      version: "0.1.0",
+      version: @version,
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases()
+      aliases: aliases(),
+      releases: releases()
     ]
   end
 
@@ -43,6 +46,32 @@ defmodule GreenhouseTycoon.Umbrella.MixProject do
     [
       # run `mix setup` in all child apps
       setup: ["cmd mix setup"]
+    ]
+  end
+
+  defp releases do
+    [
+      greenhouse_tycoon: [
+        include_executables_for: [:unix],
+        include_erts: true,
+        applications: [
+          runtime_tools: :permanent,
+          greenhouse_tycoon: :permanent,
+          greenhouse_tycoon_web: :permanent,
+          apis: :permanent,
+          landing_site: :permanent
+        ]
+      ],
+      greenhouse_tycoon_web: [
+        include_executables_for: [:unix],
+        include_erts: true,
+        applications: [
+          runtime_tools: :permanent,
+          greenhouse_tycoon_web: :permanent,
+          greenhouse_tycoon: :permanent,
+          apis: :permanent
+        ]
+      ]
     ]
   end
 end
