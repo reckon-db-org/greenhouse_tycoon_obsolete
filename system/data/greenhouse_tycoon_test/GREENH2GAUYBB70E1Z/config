@@ -1,0 +1,11 @@
+#{id => {greenhouse_tycoon_test,nonode@nohost},
+  machine =>
+      {module,khepri_machine,
+              #{member => {greenhouse_tycoon_test,nonode@nohost},
+                store_id => greenhouse_tycoon_test}},
+  friendly_name => "Khepri store \"greenhouse_tycoon_test\"",
+  uid => <<"GREENH2GAUYBB70E1Z">>,cluster_name => greenhouse_tycoon_test,
+  initial_members => [],
+  log_init_args => #{uid => <<"GREENH2GAUYBB70E1Z">>},
+  tick_timeout => 1000,install_snap_rpc_timeout => 120000,
+  await_condition_timeout => 30000,broadcast_time => 100}.

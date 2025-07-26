@@ -152,6 +152,17 @@ defmodule GreenhouseTycoon.CacheService do
   end
 
   @doc """
+  Deletes a specific greenhouse from the cache.
+  """
+  @spec delete_greenhouse(String.t()) :: :ok | {:error, term()}
+  def delete_greenhouse(greenhouse_id) do
+    case Cachex.del(@cache_name, greenhouse_id) do
+      {:ok, _} -> :ok
+      error -> error
+    end
+  end
+
+  @doc """
   Clears all greenhouse data from the cache.
   """
   @spec clear_cache() :: :ok | {:error, term()}

@@ -55,9 +55,9 @@ defmodule GreenhouseTycoon.MixProject do
       {:finch, "~> 0.13"},
       {:cachex, "~> 3.6"},
       # APIs app for countries and external services
-      {:apis, in_umbrella: true},
-      {:ex_esdb, "~> 0.4.6"},
-      {:ex_esdb_commanded, "0.2.4"},
+      {:bc_apis, "~> 0.2.0"},
+      {:ex_esdb, "~> 0.6.1"},
+      {:ex_esdb_commanded, "0.4.0"},
       {:commanded_ecto_projections, "~> 1.4"}
     ]
   end

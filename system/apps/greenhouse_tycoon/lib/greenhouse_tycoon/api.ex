@@ -8,15 +8,13 @@ defmodule GreenhouseTycoon.API do
 
   alias GreenhouseTycoon.CommandedApp
 
-  alias GreenhouseTycoon.Commands.{
-    InitializeGreenhouse,
-    SetTemperature,
-    SetHumidity,
-    SetLight,
-    MeasureTemperature,
-    MeasureHumidity,
-    MeasureLight
-  }
+  alias GreenhouseTycoon.InitializeGreenhouse.CommandV1, as: InitializeGreenhouse
+  alias GreenhouseTycoon.SetTargetTemperature.CommandV1, as: SetTargetTemperature
+  alias GreenhouseTycoon.SetTargetHumidity.CommandV1, as: SetTargetHumidity
+  alias GreenhouseTycoon.SetTargetLight.CommandV1, as: SetTargetLight
+  alias GreenhouseTycoon.MeasureTemperature.CommandV1, as: MeasureTemperature
+  alias GreenhouseTycoon.MeasureHumidity.CommandV1, as: MeasureHumidity
+  alias GreenhouseTycoon.MeasureLight.CommandV1, as: MeasureLight
 
   @doc """
   Creates a new greenhouse.
@@ -93,6 +91,48 @@ defmodule GreenhouseTycoon.API do
   end
 
   @doc """
+  Initializes a greenhouse with full details including name, location, city, and country.
+  """
+  @spec initialize_greenhouse(String.t(), String.t(), String.t(), String.t(), String.t()) :: :ok | {:error, term()}
+  def initialize_greenhouse(greenhouse_id, name, location, city, country) do
+    require Logger
+
+    Logger.info("API: Initializing greenhouse #{greenhouse_id} with full details")
+
+    case create_greenhouse(greenhouse_id, name, location, city, country) do
+      :ok ->
+        Logger.info("API: Greenhouse #{greenhouse_id} initialized successfully")
+        :ok
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
+  Resets/removes a greenhouse for testing purposes.
+  Note: This is a simplified implementation that doesn't actually remove data from event store.
+  """
+  @spec reset_greenhouse(String.t()) :: :ok
+  def reset_greenhouse(greenhouse_id) do
+    require Logger
+    Logger.info("API: Resetting greenhouse #{greenhouse_id} (cache only)")
+    
+    # In a production system, you might want to delete events or mark them as deleted
+    # For now, we'll just clear the cache entry
+    case GreenhouseTycoon.CacheService.delete_greenhouse(greenhouse_id) do
+      :ok -> 
+        Logger.info("API: Successfully reset greenhouse #{greenhouse_id}")
+        :ok
+      
+      {:error, _reason} ->
+        # Ignore errors for reset - might not exist
+        Logger.info("API: Reset greenhouse #{greenhouse_id} (was not in cache)")
+        :ok
+    end
+  end
+
+  @doc """
   Sets the target temperature for a greenhouse.
   """
   @spec set_temperature(String.t(), float(), String.t() | nil) :: :ok | {:error, term()}
@@ -103,7 +143,7 @@ defmodule GreenhouseTycoon.API do
       "API: Setting temperature for #{greenhouse_id} to #{target_temperature}°C (set_by: #{set_by})"
     )
 
-    command = %SetTemperature{
+    command = %SetTargetTemperature{
       greenhouse_id: greenhouse_id,
       target_temperature: target_temperature,
       set_by: set_by
@@ -139,7 +179,7 @@ defmodule GreenhouseTycoon.API do
       "API: Setting humidity for #{greenhouse_id} to #{target_humidity}% (set_by: #{set_by})"
     )
 
-    command = %SetHumidity{
+    command = %SetTargetHumidity{
       greenhouse_id: greenhouse_id,
       target_humidity: target_humidity,
       set_by: set_by
@@ -172,7 +212,7 @@ defmodule GreenhouseTycoon.API do
     require Logger
     Logger.info("API: Setting light for #{greenhouse_id} to #{light} lumens")
 
-    command = %SetLight{
+    command = %SetTargetLight{
       greenhouse_id: greenhouse_id,
       target_light: light
     }

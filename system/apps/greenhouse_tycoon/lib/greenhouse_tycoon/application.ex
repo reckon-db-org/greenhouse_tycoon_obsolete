@@ -23,12 +23,12 @@ defmodule GreenhouseTycoon.Application do
       {ExESDB.System, enhanced_config},
       # Start the cache service for read models
       GreenhouseTycoon.CacheService,
+      # Start the cache subscriber system to manage all cache subscribers
+      GreenhouseTycoon.ReadModels.CacheSubscriberSystem,
       # Start the infrastructure supervisor for reliability components
       GreenhouseTycoon.Infrastructure.Supervisor,
       # Start the Commanded application (without projections)
       GreenhouseTycoon.CommandedApp,
-      # Start the event-type-based projection manager
-      GreenhouseTycoon.Projections.EventTypeProjectionManager,
       # Cache population service enabled to rebuild cache from events
       GreenhouseTycoon.CachePopulationService,
       # Start the weather measurement service for automatic weather-based measurements

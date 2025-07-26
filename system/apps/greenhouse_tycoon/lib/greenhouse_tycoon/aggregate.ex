@@ -8,9 +8,9 @@ defmodule GreenhouseTycoon.Greenhouse do
 
   alias GreenhouseTycoon.Commands.{
     InitializeGreenhouse,
-    SetTemperature,
-    SetHumidity,
-    SetLight,
+    SetTargetTemperature,
+    SetTargetHumidity,
+    SetTargetLight,
     MeasureTemperature,
     MeasureHumidity,
     MeasureLight
@@ -58,34 +58,34 @@ defmodule GreenhouseTycoon.Greenhouse do
     :updated_at
   ]
 
-  # Command Handlers
+  # Command Handlers - Delegating to vertical slice handlers
 
-  def execute(%__MODULE__{greenhouse_id: nil}, %InitializeGreenhouse{} = command) do
-    require Logger
-    Logger.info("Greenhouse.execute: Creating greenhouse #{command.greenhouse_id}")
-
-    event = %GreenhouseInitialized{
-      greenhouse_id: command.greenhouse_id,
-      name: command.name,
-      location: command.location,
-      city: command.city,
-      country: command.country,
-      target_temperature: command.target_temperature,
-      target_humidity: command.target_humidity,
-      created_at: DateTime.utc_now()
-    }
-
-    Logger.info(
-      "Greenhouse.execute: Produced GreenhouseInitialized event for #{command.greenhouse_id}"
-    )
-
-    event
+  def execute(%__MODULE__{} = greenhouse, %GreenhouseTycoon.InitializeGreenhouse.CommandV1{} = command) do
+    GreenhouseTycoon.InitializeGreenhouse.MaybeInitializeGreenhouseV1.execute(greenhouse, command)
   end
 
-  def execute(%__MODULE__{greenhouse_id: greenhouse_id}, %InitializeGreenhouse{
-        greenhouse_id: greenhouse_id
-      }) do
-    {:error, :greenhouse_already_exists}
+  def execute(%__MODULE__{} = greenhouse, %GreenhouseTycoon.SetTargetTemperature.CommandV1{} = command) do
+    GreenhouseTycoon.SetTargetTemperature.MaybeSetTargetTemperatureV1.execute(greenhouse, command)
+  end
+
+  def execute(%__MODULE__{} = greenhouse, %GreenhouseTycoon.SetTargetHumidity.CommandV1{} = command) do
+    GreenhouseTycoon.SetTargetHumidity.MaybeSetTargetHumidityV1.execute(greenhouse, command)
+  end
+
+  def execute(%__MODULE__{} = greenhouse, %GreenhouseTycoon.SetTargetLight.CommandV1{} = command) do
+    GreenhouseTycoon.SetTargetLight.MaybeSetTargetLightV1.execute(greenhouse, command)
+  end
+
+  def execute(%__MODULE__{} = greenhouse, %GreenhouseTycoon.MeasureTemperature.CommandV1{} = command) do
+    GreenhouseTycoon.MeasureTemperature.MaybeMeasureTemperatureV1.execute(greenhouse, command)
+  end
+
+  def execute(%__MODULE__{} = greenhouse, %GreenhouseTycoon.MeasureHumidity.CommandV1{} = command) do
+    GreenhouseTycoon.MeasureHumidity.MaybeMeasureHumidityV1.execute(greenhouse, command)
+  end
+
+  def execute(%__MODULE__{} = greenhouse, %GreenhouseTycoon.MeasureLight.CommandV1{} = command) do
+    GreenhouseTycoon.MeasureLight.MaybeMeasureLightV1.execute(greenhouse, command)
   end
 
   def execute(%__MODULE__{greenhouse_id: nil} = state, command) do
@@ -96,7 +96,7 @@ defmodule GreenhouseTycoon.Greenhouse do
     {:error, :greenhouse_not_found}
   end
 
-  def execute(%__MODULE__{} = greenhouse, %SetTemperature{greenhouse_id: greenhouse_id} = command)
+  def execute(%__MODULE__{} = greenhouse, %SetTargetTemperature{greenhouse_id: greenhouse_id} = command)
       when greenhouse.greenhouse_id == greenhouse_id do
     %TemperatureSet{
       greenhouse_id: command.greenhouse_id,
@@ -107,7 +107,7 @@ defmodule GreenhouseTycoon.Greenhouse do
     }
   end
 
-  def execute(%__MODULE__{} = greenhouse, %SetHumidity{greenhouse_id: greenhouse_id} = command)
+  def execute(%__MODULE__{} = greenhouse, %SetTargetHumidity{greenhouse_id: greenhouse_id} = command)
       when greenhouse.greenhouse_id == greenhouse_id do
     %HumiditySet{
       greenhouse_id: command.greenhouse_id,
@@ -118,12 +118,12 @@ defmodule GreenhouseTycoon.Greenhouse do
     }
   end
 
-  def execute(%__MODULE__{} = greenhouse, %SetLight{greenhouse_id: greenhouse_id} = command)
+  def execute(%__MODULE__{} = greenhouse, %SetTargetLight{greenhouse_id: greenhouse_id} = command)
       when greenhouse.greenhouse_id == greenhouse_id do
     require Logger
 
     Logger.info(
-      "Greenhouse.execute: SetLight for #{greenhouse_id}, state greenhouse_id: #{greenhouse.greenhouse_id}"
+      "Greenhouse.execute: SetTargetLight for #{greenhouse_id}, state greenhouse_id: #{greenhouse.greenhouse_id}"
     )
 
     %LightSet{
@@ -200,26 +200,34 @@ defmodule GreenhouseTycoon.Greenhouse do
     {:error, :greenhouse_id_mismatch}
   end
 
-  # State Mutators
+  # State Mutators - Delegating to vertical slice aggregate handlers
 
-  def apply(%__MODULE__{} = _greenhouse, %GreenhouseInitialized{} = event) do
-    require Logger
-    Logger.info("Greenhouse.apply: GreenhouseInitialized event for #{event.greenhouse_id}")
-    Logger.debug("Greenhouse.apply: Event data: #{inspect(event)}")
+  def apply(%__MODULE__{} = greenhouse, %GreenhouseTycoon.InitializeGreenhouse.EventV1{} = event) do
+    GreenhouseTycoon.InitializeGreenhouse.InitializedToAggregateV1.apply(greenhouse, event)
+  end
 
-    new_state = %__MODULE__{
-      greenhouse_id: event.greenhouse_id,
-      name: event.name,
-      location: event.location,
-      city: event.city,
-      country: event.country,
-      target_temperature: event.target_temperature,
-      target_humidity: event.target_humidity,
-      created_at: event.created_at
-    }
+  def apply(%__MODULE__{} = greenhouse, %GreenhouseTycoon.SetTargetTemperature.EventV1{} = event) do
+    GreenhouseTycoon.SetTargetTemperature.TargetTemperatureSetToAggregateV1.apply(greenhouse, event)
+  end
 
-    Logger.info("Greenhouse.apply: New state greenhouse_id: #{new_state.greenhouse_id}")
-    new_state
+  def apply(%__MODULE__{} = greenhouse, %GreenhouseTycoon.SetTargetHumidity.EventV1{} = event) do
+    GreenhouseTycoon.SetTargetHumidity.TargetHumiditySetToAggregateV1.apply(greenhouse, event)
+  end
+
+  def apply(%__MODULE__{} = greenhouse, %GreenhouseTycoon.SetTargetLight.EventV1{} = event) do
+    GreenhouseTycoon.SetTargetLight.TargetLightSetToAggregateV1.apply(greenhouse, event)
+  end
+
+  def apply(%__MODULE__{} = greenhouse, %GreenhouseTycoon.MeasureTemperature.EventV1{} = event) do
+    GreenhouseTycoon.MeasureTemperature.TemperatureMeasuredToAggregateV1.apply(greenhouse, event)
+  end
+
+  def apply(%__MODULE__{} = greenhouse, %GreenhouseTycoon.MeasureHumidity.EventV1{} = event) do
+    GreenhouseTycoon.MeasureHumidity.HumidityMeasuredToAggregateV1.apply(greenhouse, event)
+  end
+
+  def apply(%__MODULE__{} = greenhouse, %GreenhouseTycoon.MeasureLight.EventV1{} = event) do
+    GreenhouseTycoon.MeasureLight.LightMeasuredToAggregateV1.apply(greenhouse, event)
   end
 
   def apply(%__MODULE__{} = greenhouse, %TemperatureSet{} = event) do

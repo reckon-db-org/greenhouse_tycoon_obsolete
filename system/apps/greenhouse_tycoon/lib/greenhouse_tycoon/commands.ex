@@ -22,7 +22,7 @@ defmodule GreenhouseTycoon.Commands do
           }
   end
 
-  defmodule SetTemperature do
+  defmodule SetTargetTemperature do
     @moduledoc """
     Command to set target temperature for a greenhouse.
     """
@@ -37,7 +37,7 @@ defmodule GreenhouseTycoon.Commands do
           }
   end
 
-  defmodule SetHumidity do
+  defmodule SetTargetHumidity do
     @moduledoc """
     Command to set target humidity for a greenhouse.
     """
@@ -52,7 +52,7 @@ defmodule GreenhouseTycoon.Commands do
           }
   end
 
-  defmodule SetLight do
+  defmodule SetTargetLight do
     @moduledoc """
     Command to set target light level for a greenhouse.
     """

@@ -1,50 +1,21 @@
 defmodule GreenhouseTycoon.EventTypeMapper do
   @moduledoc """
-  Maps between Commanded event module names and readable, versioned event types.
+  Maps event modules to their type strings for ExESDB serialization.
   
-  This ensures that events are stored with implementation-agnostic, 
-  readable names rather than module names.
+  Event types follow the format: <event_type>:<version> in snake_case
+  Example: "greenhouse_initialized:v1"
+  
+  Following The Guidelines, each event module maps to a versioned event type.
   """
+  @behaviour ExESDB.Commanded.EventTypeMapper
 
-  @event_type_mappings %{
-    "Elixir.GreenhouseTycoon.Events.GreenhouseInitialized" => "initialized:v1",
-    "Elixir.GreenhouseTycoon.Events.TemperatureSet" => "desired_temperature_set:v1",
-    "Elixir.GreenhouseTycoon.Events.TemperatureMeasured" => "temperature_measured:v1",
-    "Elixir.GreenhouseTycoon.Events.HumiditySet" => "desired_humidity_set:v1",
-    "Elixir.GreenhouseTycoon.Events.HumidityMeasured" => "humidity_measured:v1",
-    "Elixir.GreenhouseTycoon.Events.LightSet" => "desired_light_set:v1",
-    "Elixir.GreenhouseTycoon.Events.LightMeasured" => "light_measured:v1"
-  }
-
-  @doc """
-  Maps a Commanded event module name to a readable, versioned event type.
-  Used when writing events to the event store.
-  """
-  def to_event_type(event_module) when is_atom(event_module) do
-    event_module
-    |> Atom.to_string()
-    |> to_event_type()
-  end
-
-  def to_event_type(event_module_string) when is_binary(event_module_string) do
-    Map.get(@event_type_mappings, event_module_string, event_module_string)
-  end
-
-  @doc """
-  Maps a readable event type back to the corresponding module name.
-  Used when reading events from the event store.
-  """
-  def from_event_type(readable_type) when is_binary(readable_type) do
-    # Create reverse mapping
-    reverse_mappings = @event_type_mappings
-    |> Enum.map(fn {k, v} -> {v, k} end)
-    |> Map.new()
-    
-    Map.get(reverse_mappings, readable_type, readable_type)
-  end
-
-  @doc """
-  Returns all supported event type mappings.
-  """
-  def mappings, do: @event_type_mappings
+  @impl ExESDB.Commanded.EventTypeMapper
+  def to_event_type(GreenhouseTycoon.InitializeGreenhouse.EventV1), do: "greenhouse_initialized:v1"
+  def to_event_type(GreenhouseTycoon.SetTargetTemperature.EventV1), do: "target_temperature_set:v1"
+  def to_event_type(GreenhouseTycoon.SetTargetHumidity.EventV1), do: "target_humidity_set:v1"
+  def to_event_type(GreenhouseTycoon.SetTargetLight.EventV1), do: "target_light_set:v1"
+  def to_event_type(GreenhouseTycoon.MeasureTemperature.EventV1), do: "temperature_measured:v1"
+  def to_event_type(GreenhouseTycoon.MeasureHumidity.EventV1), do: "humidity_measured:v1"
+  def to_event_type(GreenhouseTycoon.MeasureLight.EventV1), do: "light_measured:v1"
+  def to_event_type(event_module), do: raise "Unknown event module: #{event_module}"
 end
