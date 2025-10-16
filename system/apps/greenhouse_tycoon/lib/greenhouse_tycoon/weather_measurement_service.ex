@@ -7,7 +7,7 @@ defmodule GreenhouseTycoon.WeatherMeasurementService do
   use GenServer
   require Logger
   
-  alias GreenhouseTycoon.{API, WeatherService}
+  alias GreenhouseTycoon.API
   
   @measurement_interval 60_000  # 1 minute
   
@@ -118,9 +118,9 @@ defmodule GreenhouseTycoon.WeatherMeasurementService do
   defp measure_single_greenhouse(greenhouse_id, {lat, lon}) do
     Logger.info("WeatherMeasurementService: Measuring greenhouse #{greenhouse_id} at lat=#{lat}, lon=#{lon}")
     
-    case WeatherService.get_current_weather(lat, lon, nil) do
+    case BCApis.Weather.get_current_weather(lat, lon, nil) do
       {:ok, weather_data} ->
-        greenhouse_conditions = WeatherService.weather_to_greenhouse_conditions(weather_data)
+        greenhouse_conditions = BCApis.Weather.weather_to_greenhouse_conditions(weather_data)
         
         Logger.info("WeatherMeasurementService: Weather conditions for #{greenhouse_id}: #{inspect(greenhouse_conditions)}")
         
@@ -160,21 +160,14 @@ defmodule GreenhouseTycoon.WeatherMeasurementService do
   end
   
   defp get_greenhouse_coordinates(greenhouse_id) do
-    case API.get_greenhouse_state(greenhouse_id) do
-      {:ok, state} ->
-        # The state comes from the cache service, let's try to get location from the read model
-        case GreenhouseTycoon.CacheService.get_greenhouse(greenhouse_id) do
-          {:ok, greenhouse} when not is_nil(greenhouse) ->
-            parse_location_coordinates(greenhouse.location)
-          
-          _ ->
-            Logger.warning("WeatherMeasurementService: Could not get greenhouse #{greenhouse_id} from cache")
-            {:error, :not_found}
-        end
+    # Get the greenhouse directly from the database
+    case GreenhouseTycoon.Repo.get_by(GreenhouseTycoon.Greenhouse, greenhouse_id: greenhouse_id) do
+      greenhouse when not is_nil(greenhouse) ->
+        parse_location_coordinates(greenhouse.location)
       
-      {:error, reason} ->
-        Logger.warning("WeatherMeasurementService: Could not get state for #{greenhouse_id}: #{inspect(reason)}")
-        {:error, reason}
+      _ ->
+        Logger.warning("WeatherMeasurementService: Could not get greenhouse #{greenhouse_id} from database")
+        {:error, :not_found}
     end
   end
   

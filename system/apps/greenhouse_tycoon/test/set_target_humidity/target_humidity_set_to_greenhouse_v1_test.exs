@@ -3,7 +3,7 @@ defmodule GreenhouseTycoon.SetTargetHumidity.TargetHumiditySetToGreenhouseV1Test
 
   alias GreenhouseTycoon.SetTargetHumidity.EventV1, as: TargetHumiditySetEvent
   alias GreenhouseTycoon.SetTargetHumidity.TargetHumiditySetToGreenhouseV1
-  alias GreenhouseTycoon.ReadModels.GreenhouseReadModel
+  alias GreenhouseTycoon.ReadModels.Greenhouse
 
   @cache_name :greenhouse_read_models
   @test_greenhouse_id "test-greenhouse-set-humidity-123"
@@ -120,7 +120,7 @@ defmodule GreenhouseTycoon.SetTargetHumidity.TargetHumiditySetToGreenhouseV1Test
   end
 
   defp create_test_greenhouse do
-    read_model = %GreenhouseReadModel{
+    read_model = %Greenhouse{
       greenhouse_id: @test_greenhouse_id,
       name: "Test Greenhouse",
       location: "Test Location",

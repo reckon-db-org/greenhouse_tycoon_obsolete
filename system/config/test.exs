@@ -6,8 +6,11 @@ import Config
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
 config :greenhouse_tycoon, GreenhouseTycoon.Repo,
-  database: Path.expand("../regulate_greenhouse_test.db", __DIR__),
-  pool_size: 5,
+  adapter: Ecto.Adapters.Postgres,
+  username: "postgres",
+  password: "postgres",
+  database: "greenhouse_tycoon_test",
+  hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :manage_crops, ManageCrops.Repo,

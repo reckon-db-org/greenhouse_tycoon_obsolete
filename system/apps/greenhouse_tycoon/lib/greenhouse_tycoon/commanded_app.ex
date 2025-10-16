@@ -20,9 +20,14 @@ defmodule GreenhouseTycoon.CommandedApp do
         name: GreenhouseTycoon.PubSub
       ]
     ],
-    # Disable automatic subscriptions to prevent stream-based projections
-    # We handle event subscriptions manually through the EventTypeProjectionManager
-    subscribe_to_all_streams?: false
+    # Enable automatic subscriptions for proper event sourcing
+    subscribe_to_all_streams?: true,
+    
+    # Enable snapshots for fast aggregate recovery
+    snapshot_store: ExESDB.Commanded.Adapter.SnapshotStore,
+    
+    # Configure snapshot frequency (every 100 events)
+    snapshot_version: 1
 
   # Configure the event store adapter for command dispatch only
   router(GreenhouseTycoon.Router)

@@ -193,4 +193,6 @@ config :ex_esdb_commanded_adapter, :event_type_mapper, GreenhouseTycoon.EventTyp
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
+config :greenhouse_tycoon, ecto_repos: [GreenhouseTycoon.Repo]
+
 import_config "#{config_env()}.exs"

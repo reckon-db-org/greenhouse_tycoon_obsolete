@@ -11,7 +11,7 @@ defmodule GreenhouseTycoon.InitializeGreenhouse.InitializedToAggregateV1 do
   - Aggregate: Always named 'aggregate' -> aggregate
   """
   
-  alias GreenhouseTycoon.Greenhouse
+  alias GreenhouseTycoon.Aggregate
   alias GreenhouseTycoon.InitializeGreenhouse.EventV1, as: GreenhouseInitializedEvent
   
   require Logger
@@ -21,11 +21,11 @@ defmodule GreenhouseTycoon.InitializeGreenhouse.InitializedToAggregateV1 do
   
   This creates the initial state of a new greenhouse aggregate.
   """
-  def apply(%Greenhouse{} = _greenhouse, %GreenhouseInitializedEvent{} = event) do
+  def apply(%Aggregate{} = _greenhouse, %GreenhouseInitializedEvent{} = event) do
     Logger.info("InitializedToAggregateV1: Applying GreenhouseInitialized event for #{event.greenhouse_id}")
     Logger.debug("InitializedToAggregateV1: Event data: #{inspect(event)}")
 
-    new_state = %Greenhouse{
+    new_state = %Aggregate{
       greenhouse_id: event.greenhouse_id,
       name: event.name,
       location: event.location,

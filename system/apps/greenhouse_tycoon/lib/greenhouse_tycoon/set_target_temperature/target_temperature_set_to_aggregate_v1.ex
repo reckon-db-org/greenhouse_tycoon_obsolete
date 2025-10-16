@@ -11,7 +11,7 @@ defmodule GreenhouseTycoon.SetTargetTemperature.TargetTemperatureSetToAggregateV
   - Aggregate: Always named 'aggregate' -> aggregate
   """
   
-  alias GreenhouseTycoon.Greenhouse
+  alias GreenhouseTycoon.Aggregate
   alias GreenhouseTycoon.SetTargetTemperature.EventV1, as: TargetTemperatureSetEvent
   
   require Logger
@@ -21,11 +21,11 @@ defmodule GreenhouseTycoon.SetTargetTemperature.TargetTemperatureSetToAggregateV
   
   This updates the target temperature in the aggregate state.
   """
-  def apply(%Greenhouse{} = greenhouse, %TargetTemperatureSetEvent{} = event) do
+  def apply(%Aggregate{} = greenhouse, %TargetTemperatureSetEvent{} = event) do
     Logger.info("TargetTemperatureSetToAggregateV1: Applying TargetTemperatureSet event for #{event.greenhouse_id} to #{event.target_temperature}°C")
     Logger.debug("TargetTemperatureSetToAggregateV1: Event data: #{inspect(event)}")
 
-    updated_state = %Greenhouse{
+    updated_state = %Aggregate{
       greenhouse
       | target_temperature: event.target_temperature,
         updated_at: event.set_at

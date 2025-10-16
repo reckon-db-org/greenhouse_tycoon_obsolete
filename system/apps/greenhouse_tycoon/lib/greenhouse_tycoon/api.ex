@@ -8,6 +8,8 @@ defmodule GreenhouseTycoon.API do
 
   alias GreenhouseTycoon.CommandedApp
 
+  import Ecto.Query, warn: false
+
   alias GreenhouseTycoon.InitializeGreenhouse.CommandV1, as: InitializeGreenhouse
   alias GreenhouseTycoon.SetTargetTemperature.CommandV1, as: SetTargetTemperature
   alias GreenhouseTycoon.SetTargetHumidity.CommandV1, as: SetTargetHumidity
@@ -116,18 +118,18 @@ defmodule GreenhouseTycoon.API do
   @spec reset_greenhouse(String.t()) :: :ok
   def reset_greenhouse(greenhouse_id) do
     require Logger
-    Logger.info("API: Resetting greenhouse #{greenhouse_id} (cache only)")
+    Logger.info("API: Resetting greenhouse #{greenhouse_id} (database record only)")
     
     # In a production system, you might want to delete events or mark them as deleted
-    # For now, we'll just clear the cache entry
-    case GreenhouseTycoon.CacheService.delete_greenhouse(greenhouse_id) do
-      :ok -> 
-        Logger.info("API: Successfully reset greenhouse #{greenhouse_id}")
+    # For now, we'll just delete the database record
+    case GreenhouseTycoon.Repo.delete_all(
+      from g in GreenhouseTycoon.Greenhouse, where: g.greenhouse_id == ^greenhouse_id
+    ) do
+      {0, _} -> 
+        Logger.info("API: Reset greenhouse #{greenhouse_id} (was not in database)")
         :ok
-      
-      {:error, _reason} ->
-        # Ignore errors for reset - might not exist
-        Logger.info("API: Reset greenhouse #{greenhouse_id} (was not in cache)")
+      {count, _} when count > 0 ->
+        Logger.info("API: Successfully reset greenhouse #{greenhouse_id}")
         :ok
     end
   end
@@ -239,7 +241,8 @@ defmodule GreenhouseTycoon.API do
     command = %MeasureTemperature{
       greenhouse_id: greenhouse_id,
       temperature: temperature,
-      measured_at: DateTime.utc_now()
+      measured_at: DateTime.utc_now(),
+      measurement_type: :sensor
     }
 
     case CommandedApp.dispatch_command(command) do
@@ -317,7 +320,7 @@ defmodule GreenhouseTycoon.API do
   """
   @spec list_greenhouses() :: [String.t()]
   def list_greenhouses do
-    GreenhouseTycoon.CacheService.list_greenhouses()
+    GreenhouseTycoon.Repo.all(GreenhouseTycoon.Greenhouse)
     |> Enum.map(& &1.greenhouse_id)
   end
 
@@ -326,7 +329,7 @@ defmodule GreenhouseTycoon.API do
   """
   def get_countries do
     try do
-      countries = Apis.Countries.all_countries()
+      countries = BCApis.Countries.all_countries()
       {:ok, countries |> Enum.sort()}
     rescue
       _ -> {:error, "Countries service unavailable"}
@@ -338,7 +341,7 @@ defmodule GreenhouseTycoon.API do
   """
   def get_country_by_code(country_code) do
     try do
-      Apis.Countries.get_country_by_country_code(country_code)
+      BCApis.Countries.get_country_by_country_code(country_code)
     rescue
       _ -> {:error, "Countries service unavailable"}
     end
@@ -350,10 +353,10 @@ defmodule GreenhouseTycoon.API do
   def get_country_by_name(country_name) do
     try do
       # Start the countries service if not already started
-      {:ok, _} = Apis.Countries.start(true)
+      {:ok, _} = BCApis.Countries.start(true)
       
       # Get all countries and find by name
-      countries = Apis.Countries.all_countries()
+      countries = BCApis.Countries.all_countries()
       
       case countries do
         country_names when is_list(country_names) ->
@@ -374,7 +377,7 @@ defmodule GreenhouseTycoon.API do
   def get_country_flag(country_name) do
     try do
       # Start the countries service if not already started
-      {:ok, _} = Apis.Countries.start(true)
+      {:ok, _} = BCApis.Countries.start(true)
       
       # Use a more direct approach to get the flag
       case get_country_data_by_name(country_name) do
@@ -447,8 +450,8 @@ defmodule GreenhouseTycoon.API do
   def get_greenhouse_with_location(greenhouse_id) do
     case get_greenhouse_state(greenhouse_id) do
       {:ok, state} ->
-        case GreenhouseTycoon.CacheService.get_greenhouse(greenhouse_id) do
-          {:ok, greenhouse} when not is_nil(greenhouse) ->
+        case GreenhouseTycoon.Repo.get_by(GreenhouseTycoon.Greenhouse, greenhouse_id: greenhouse_id) do
+          greenhouse when not is_nil(greenhouse) ->
             # Parse coordinates
             coordinates = case parse_location_coordinates(greenhouse.location) do
               {:ok, {lat, lon}} -> %{latitude: lat, longitude: lon}
@@ -470,11 +473,11 @@ defmodule GreenhouseTycoon.API do
   """
   @spec get_greenhouse_state(String.t()) :: {:ok, map()} | {:error, term()}
   def get_greenhouse_state(greenhouse_id) do
-    case GreenhouseTycoon.CacheService.get_greenhouse(greenhouse_id) do
-      {:ok, nil} ->
+    case GreenhouseTycoon.Repo.get_by(GreenhouseTycoon.Greenhouse, greenhouse_id: greenhouse_id) do
+      nil ->
         {:error, :not_found}
 
-      {:ok, read_model} ->
+      read_model ->
         {:ok,
          %{
            current_temperature: read_model.current_temperature || 0,
@@ -489,9 +492,6 @@ defmodule GreenhouseTycoon.API do
            event_count: read_model.event_count,
            status: read_model.status
          }}
-
-      error ->
-        error
     end
   end
 
@@ -598,147 +598,176 @@ defmodule GreenhouseTycoon.API do
     end
   end
 
-  @doc """
-  Rebuild greenhouse cache from ExESDB event streams.
+  
 
-  This function reads all events from the event store and replays them
-  through the existing event handlers to reconstruct the cache state.
+  
+
+  
+
+  
+
+  @doc """
+  Get the status of all projections.
   """
-  @spec rebuild_cache() :: {:ok, map()} | {:error, term()}
-  def rebuild_cache do
+  @spec get_projections_status() :: {:ok, list()} | {:error, term()}
+  def get_projections_status do
     require Logger
-    Logger.info("API: Rebuilding cache from ExESDB event streams")
-
-    case GreenhouseTycoon.CacheRebuildService.rebuild_cache() do
-      {:ok, stats} ->
-        Logger.info("API: Cache rebuild succeeded with stats: #{inspect(stats)}")
-        {:ok, stats}
-
-      {:error, error} ->
-        Logger.error("API: Cache rebuild failed: #{inspect(error)}")
-        {:error, error}
-    end
-  end
-
-  @doc """
-  Get the status of cache population on startup.
-
-  Returns information about whether the cache has been populated from
-  event streams during application startup.
-  """
-  @spec get_cache_population_status() :: {:ok, map()} | {:error, term()}
-  def get_cache_population_status do
-    GreenhouseTycoon.CachePopulationService.population_status()
-  end
-
-  @doc """
-  Manually trigger cache population.
-
-  This is useful for forcing a cache rebuild outside of the normal
-  startup process, such as for testing or manual recovery.
-  """
-  @spec populate_cache() :: :ok | {:error, term()}
-  def populate_cache do
-    require Logger
-    Logger.info("API: Manually triggering cache population")
-
-    case GreenhouseTycoon.CachePopulationService.populate_cache() do
-      :ok ->
-        Logger.info("API: Cache population started successfully")
-        :ok
-
-      {:error, reason} ->
-        Logger.error("API: Failed to start cache population: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
-
-  @doc """
-  Debug function to test event store access directly.
-  """
-  def debug_event_store(greenhouse_id) do
-    require Logger
+    Logger.info("API: Getting projections status")
     
-    # Get configuration
-    event_store_config = Application.get_env(:greenhouse_tycoon, GreenhouseTycoon.CommandedApp)[:event_store]
-    stream_prefix = Keyword.get(event_store_config, :stream_prefix, "")
-    store_id = Keyword.get(event_store_config, :store_id, :default)
-    
-    event_stream_id = stream_prefix <> greenhouse_id
-    
-    Logger.info("DEBUG: Testing event store access")
-    Logger.info("DEBUG: store_id: #{inspect(store_id)}")
-    Logger.info("DEBUG: stream_prefix: #{inspect(stream_prefix)}")
-    Logger.info("DEBUG: event_stream_id: #{inspect(event_stream_id)}")
-    
-    # Try different API calls to see what works
-    Logger.info("DEBUG: Trying stream_backward...")
-    case ExESDBGater.API.stream_backward(store_id, event_stream_id, 1000, 30) do
-      {:ok, stream} ->
-        events = Enum.to_list(stream)
-        Logger.info("DEBUG: stream_backward success, found #{length(events)} events")
-        Enum.each(events, fn event ->
-          Logger.info("DEBUG: Event - type: #{event.event_type}, id: #{event.event_id}")
-        end)
+    case GreenhouseTycoon.Projections.ProjectionsSystem.projection_status() do
+      {:ok, projections} ->
+        Logger.info("API: Found #{length(projections)} projections")
+        {:ok, projections}
         
-      error ->
-        Logger.error("DEBUG: stream_backward failed: #{inspect(error)}")
-    end
-    
-    # Try list_streams to see what streams exist
-    Logger.info("DEBUG: Listing all streams...")
-    case ExESDBGater.API.list_streams(store_id) do
-      {:ok, streams} ->
-        matching_streams = Enum.filter(streams, fn stream -> String.contains?(stream, greenhouse_id) end)
-        Logger.info("DEBUG: Found #{length(streams)} total streams")
-        Logger.info("DEBUG: Streams matching #{greenhouse_id}: #{inspect(matching_streams)}")
-        
-      error ->
-        Logger.error("DEBUG: list_streams failed: #{inspect(error)}")
-    end
-    
-    :ok
-  end
-
-  @doc """
-  Debug function to restart event-type projections.
-  """
-  @spec restart_projections() :: :ok
-  def restart_projections do
-    require Logger
-    Logger.info("API: Attempting to restart EventTypeProjectionManager")
-
-    case GreenhouseTycoon.Projections.EventTypeProjectionManager.status() do
-      projections when is_list(projections) ->
-        Logger.info("API: Event type projections status: #{inspect(projections)}")
-
-        # Restart any failed projections
-        failed_projections =
-          Enum.filter(projections, fn {_, status} -> status == :not_running end)
-
-        if length(failed_projections) > 0 do
-          Logger.info("API: Restarting #{length(failed_projections)} failed projections")
-
-          Enum.each(failed_projections, fn {event_type, _} ->
-            case GreenhouseTycoon.Projections.EventTypeProjectionManager.restart_projection(
-                   event_type
-                 ) do
-              :ok ->
-                Logger.info("API: Restarted #{event_type} projection")
-
-              error ->
-                Logger.error("API: Failed to restart #{event_type} projection: #{inspect(error)}")
-            end
-          end)
-        else
-          Logger.info("API: All event type projections are running")
-        end
-
-        :ok
-
-      error ->
-        Logger.error("API: Failed to get projection status: #{inspect(error)}")
+      {:error, reason} = error ->
+        Logger.error("API: Failed to get projections status: #{inspect(reason)}")
         error
     end
+  end
+  
+  @doc """
+  Restart a specific projection.
+  """
+  @spec restart_projection(atom()) :: :ok | {:error, term()}
+  def restart_projection(projection_module) when is_atom(projection_module) do
+    require Logger
+    Logger.info("API: Restarting projection #{projection_module}")
+    
+    case GreenhouseTycoon.Projections.ProjectionsSystem.restart_projection(projection_module) do
+      :ok ->
+        Logger.info("API: Successfully restarted projection #{projection_module}")
+        :ok
+        
+      {:error, reason} = error ->
+        Logger.error("API: Failed to restart projection #{projection_module}: #{inspect(reason)}")
+        error
+    end
+  end
+  
+  @doc """
+  Get projections health summary.
+  """
+  @spec get_projections_health() :: map()
+  def get_projections_health do
+    GreenhouseTycoon.Projections.ProjectionsSystem.running_projections_count()
+  end
+
+  @doc """
+  Rebuild event handlers (Ecto projections).
+  
+  This truncates the database tables and uses Commanded's built-in reset functionality to 
+  restart Ecto projections from their configured start position. This triggers
+  automatic replay of events from the event store, rebuilding the database read models from scratch.
+  This is the proper way to rebuild read models in an event-sourced system.
+  """
+  @spec rebuild_event_handlers() :: {:ok, map()} | {:error, term()}
+  def rebuild_event_handlers do
+    require Logger
+    Logger.info("API: Rebuilding Ecto projections using Commanded's reset functionality")
+    
+    try do
+      # Step 1: Clear the database tables to ensure clean rebuild
+      Logger.info("API: Truncating greenhouse table before rebuilding projections")
+      case GreenhouseTycoon.Repo.delete_all(GreenhouseTycoon.Greenhouse) do
+        {count, _} -> 
+          Logger.info("API: Deleted #{count} greenhouse records")
+      end
+      
+      # Step 2: Get list of Ecto projections to reset
+      ecto_projections = [
+        "InitializedToGreenhouseEctoV1",
+        "TemperatureMeasuredToGreenhouseEctoV1", 
+        "HumidityMeasuredToGreenhouseEctoV1",
+        "LightMeasuredToGreenhouseEctoV1",
+        "TargetTemperatureSetToGreenhouseEctoV1",
+        "TargetHumiditySetToGreenhouseEctoV1",
+        "TargetLightSetToGreenhouseEctoV1"
+      ]
+      
+      # Step 3: Reset each Ecto projection using Commanded's registry
+      reset_results = Enum.map(ecto_projections, fn projection_name ->
+        Logger.info("API: Resetting Ecto projection: #{projection_name}")
+        
+        # Get the projection's registered name and PID
+        registry_name = Commanded.Projections.Ecto.name(GreenhouseTycoon.CommandedApp, projection_name)
+        
+        case Commanded.Registration.whereis_name(GreenhouseTycoon.CommandedApp, registry_name) do
+          :undefined ->
+            Logger.warning("API: Projection #{projection_name} not found in registry")
+            {projection_name, {:error, :not_found}}
+            
+          pid when is_pid(pid) ->
+            Logger.info("API: Sending reset message to projection #{projection_name} (PID: #{inspect(pid)})")
+            send(pid, :reset)
+            {projection_name, :ok}
+            
+          other ->
+            Logger.error("API: Unexpected registry response for #{projection_name}: #{inspect(other)}")
+            {projection_name, {:error, :unexpected_response}}
+        end
+      end)
+      
+      # Step 4: Reset subscription tracking to clear strong consistency state
+      Logger.info("API: Resetting subscription tracking")
+      case Commanded.Subscriptions.reset(GreenhouseTycoon.CommandedApp) do
+        :ok -> 
+          Logger.info("API: Subscription tracking reset successfully")
+        error -> 
+          Logger.error("API: Failed to reset subscription tracking: #{inspect(error)}")
+      end
+      
+      # Step 5: Check results and prepare response
+      {successful, failed} = Enum.split_with(reset_results, fn {_projection, result} -> result == :ok end)
+      
+      # Step 6: Wait for projections to process events and rebuild database
+      Logger.info("API: Waiting for Ecto projections to rebuild from events...")
+      Process.sleep(3000)  # Give projections time to replay events
+      
+      # Step 7: Get final database status
+      db_size = length(GreenhouseTycoon.Repo.all(GreenhouseTycoon.Greenhouse))
+      
+      response = %{
+        status: if(length(failed) == 0, do: :success, else: :partial_success),
+        db_size: db_size,
+        projections_reset: length(successful),
+        projections_failed: length(failed),
+        successful_projections: Enum.map(successful, fn {projection, _} -> projection end),
+        failed_projections: Enum.map(failed, fn {projection, error} -> {projection, error} end),
+        method: :ecto_projections_reset,
+        timestamp: DateTime.utc_now()
+      }
+      
+      if length(failed) == 0 do
+        Logger.info("API: Ecto projections reset successfully. Database now contains #{db_size} items")
+        {:ok, response}
+      else
+        Logger.warning("API: Ecto projections partially reset. #{length(successful)} succeeded, #{length(failed)} failed")
+        {:ok, response}
+      end
+      
+    rescue
+      error ->
+        Logger.error("API: Exception during Ecto projection reset: #{inspect(error)}")
+        {:error, {:reset_exception, error}}
+    end
+  end
+  
+  @doc """
+  Get event handler status (Ecto projections status).
+  
+  Returns the current status of the database and Ecto projections,
+  which represents the state of the read models built from events.
+  """
+  @spec get_event_handler_status() :: {:ok, map()}
+  def get_event_handler_status do
+    greenhouses = GreenhouseTycoon.Repo.all(GreenhouseTycoon.Greenhouse)
+    
+    {:ok, %{
+      db_size: length(greenhouses),
+      greenhouse_count: length(greenhouses),
+      greenhouse_ids: Enum.map(greenhouses, & &1.greenhouse_id),
+      status: :active,
+      timestamp: DateTime.utc_now()
+    }}
   end
 end

@@ -1,5 +1,13 @@
 import Config
 
+config :greenhouse_tycoon, GreenhouseTycoon.Repo,
+  adapter: Ecto.Adapters.Postgres,
+  username: "your_username",
+  password: "your_password",
+  database: "greenhouse_tycoon_prod",
+  hostname: "your_hostname",
+  pool_size: 20
+
 # Individual apps configure their own ExESDB instances for production
 
 # Configure ExESDB for greenhouse_tycoon production

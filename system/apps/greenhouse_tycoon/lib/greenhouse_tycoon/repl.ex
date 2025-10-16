@@ -15,8 +15,7 @@ defmodule GreenhouseTycoon.Repl do
   require Logger
   
   alias GreenhouseTycoon.{API, CommandedApp, EventTypeMapper}
-  alias GreenhouseTycoon.Events.GreenhouseInitialized
-  alias GreenhouseTycoon.Commands.InitializeGreenhouse
+  alias GreenhouseTycoon.InitializeGreenhouse.{CommandV1, EventV1}
   
   @doc """
   Check if the event type mapper is working correctly.
@@ -25,9 +24,9 @@ defmodule GreenhouseTycoon.Repl do
     Logger.info("=== Event Type Mapper Check ===")
     
     # Test mapping from module to event type
-    module_name = "Elixir.GreenhouseTycoon.Events.GreenhouseInitialized"
+    module_name = GreenhouseTycoon.InitializeGreenhouse.EventV1
     mapped_type = EventTypeMapper.to_event_type(module_name)
-    Logger.info("Module name: #{module_name}")
+    Logger.info("Module: #{inspect(module_name)}")
     Logger.info("Mapped to: #{mapped_type}")
     
     # Test reverse mapping
@@ -75,45 +74,34 @@ defmodule GreenhouseTycoon.Repl do
   end
   
   @doc """
-  Check the cache status.
+  Check the database for greenhouses.
   """
-  def check_cache do
-    Logger.info("=== Cache Status Check ===")
+  def check_database do
+    Logger.info("=== Database Status Check ===")
     
-    case Cachex.stats(:greenhouse_read_models) do
-      {:ok, stats} ->
-        Logger.info("Cache stats: #{inspect(stats)}")
-        stats
-      error ->
-        Logger.error("Error getting cache stats: #{inspect(error)}")
-        error
-    end
+    greenhouses = GreenhouseTycoon.Repo.all(GreenhouseTycoon.Greenhouse)
+    Logger.info("Found #{length(greenhouses)} greenhouses in database")
+    
+    Enum.each(greenhouses, fn greenhouse ->
+      Logger.info("  #{greenhouse.greenhouse_id}: #{greenhouse.name}")
+    end)
+    
+    greenhouses
   end
   
   @doc """
-  List all cache entries.
+  List all greenhouse records from database.
   """
-  def list_cache_entries do
-    Logger.info("=== Cache Entries ===")
+  def list_database_entries do
+    Logger.info("=== Database Entries ===")
     
-    case Cachex.keys(:greenhouse_read_models) do
-      {:ok, keys} ->
-        Logger.info("Cache keys: #{inspect(keys)}")
-        
-        Enum.each(keys, fn key ->
-          case Cachex.get(:greenhouse_read_models, key) do
-            {:ok, value} ->
-              Logger.info("  #{key}: #{inspect(value)}")
-            error ->
-              Logger.error("  #{key}: Error - #{inspect(error)}")
-          end
-        end)
-        
-        keys
-      error ->
-        Logger.error("Error getting cache keys: #{inspect(error)}")
-        error
-    end
+    greenhouses = GreenhouseTycoon.Repo.all(GreenhouseTycoon.Greenhouse)
+    
+    Enum.each(greenhouses, fn greenhouse ->
+      Logger.info("  #{greenhouse.greenhouse_id}: #{inspect(Map.from_struct(greenhouse))}")
+    end)
+    
+    greenhouses
   end
   
   @doc """
@@ -132,16 +120,14 @@ defmodule GreenhouseTycoon.Repl do
     
     Logger.info("Creation result: #{inspect(result)}")
     
-    # Wait a bit and check cache
+    # Wait a bit and check database
     :timer.sleep(1000)
     
-    case Cachex.get(:greenhouse_read_models, greenhouse_id) do
-      {:ok, nil} ->
-        Logger.warning("Greenhouse #{greenhouse_id} not found in cache")
-      {:ok, greenhouse} ->
-        Logger.info("Greenhouse #{greenhouse_id} found in cache: #{inspect(greenhouse)}")
-      error ->
-        Logger.error("Error checking cache for #{greenhouse_id}: #{inspect(error)}")
+    case GreenhouseTycoon.Repo.get_by(GreenhouseTycoon.Greenhouse, greenhouse_id: greenhouse_id) do
+      nil ->
+        Logger.warning("Greenhouse #{greenhouse_id} not found in database")
+      greenhouse ->
+        Logger.info("Greenhouse #{greenhouse_id} found in database: #{inspect(Map.from_struct(greenhouse))}")
     end
     
     result
@@ -161,19 +147,19 @@ defmodule GreenhouseTycoon.Repl do
     Logger.info("Step 2: Checking projections")
     check_projections()
     
-    # Step 3: Check cache before creation
-    Logger.info("Step 3: Checking cache before creation")
-    check_cache()
+    # Step 3: Check database before creation
+    Logger.info("Step 3: Checking database before creation")
+    check_database()
     
     # Step 4: Create greenhouse
     Logger.info("Step 4: Creating greenhouse")
     result = create_test_greenhouse(greenhouse_id)
     
-    # Step 5: Check cache after creation
-    Logger.info("Step 5: Checking cache after creation")
+    # Step 5: Check database after creation
+    Logger.info("Step 5: Checking database after creation")
     :timer.sleep(2000)  # Wait a bit longer
-    check_cache()
-    list_cache_entries()
+    check_database()
+    list_database_entries()
     
     result
   end
@@ -203,13 +189,17 @@ defmodule GreenhouseTycoon.Repl do
     Logger.info("=== Testing Event Type Mapping ===")
     
     # Create a sample event
-    event = %GreenhouseInitialized{
+    event = %EventV1{
       greenhouse_id: "test",
       name: "test",
       location: "50.0,4.0",
       city: "Brussels",
       country: "Belgium",
-      created_at: DateTime.utc_now()
+      target_temperature: nil,
+      target_humidity: nil,
+      target_light: nil,
+      initialized_at: DateTime.utc_now(),
+      version: 1
     }
     
     # Test direct mapping

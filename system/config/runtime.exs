@@ -38,6 +38,13 @@ if config_env() == :prod do
       event_type_mapper: GreenhouseTycoon.EventTypeMapper
     ]
 
+  # Configure Ecto for production
+  config :greenhouse_tycoon, GreenhouseTycoon.Repo,
+    adapter: Ecto.Adapters.Postgres,
+    url: System.get_env("DATABASE_URL"),
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+    ssl: true
+
   # Configure libcluster for runtime - following the rule to use libcluster completely
   config :libcluster,
     topologies: [
@@ -136,6 +143,3 @@ config :greenhouse_tycoon_web, GreenhouseTycoonWeb.Endpoint,
 # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
 
 config :greenhouse_tycoon, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
-
-# Cache population configuration for production
-config :greenhouse_tycoon, :populate_cache_on_startup, true

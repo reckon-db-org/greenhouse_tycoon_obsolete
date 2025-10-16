@@ -11,7 +11,7 @@ defmodule GreenhouseTycoon.SetTargetLight.TargetLightSetToAggregateV1 do
   - Aggregate: Always named 'aggregate' -> aggregate
   """
   
-  alias GreenhouseTycoon.Greenhouse
+  alias GreenhouseTycoon.Aggregate
   alias GreenhouseTycoon.SetTargetLight.EventV1, as: TargetLightSetEvent
   
   require Logger
@@ -21,11 +21,11 @@ defmodule GreenhouseTycoon.SetTargetLight.TargetLightSetToAggregateV1 do
   
   This updates the target light in the aggregate state.
   """
-  def apply(%Greenhouse{} = greenhouse, %TargetLightSetEvent{} = event) do
+  def apply(%Aggregate{} = greenhouse, %TargetLightSetEvent{} = event) do
     Logger.info("TargetLightSetToAggregateV1: Applying TargetLightSet event for #{event.greenhouse_id} to #{event.target_light} lumens")
     Logger.debug("TargetLightSetToAggregateV1: Event data: #{inspect(event)}")
 
-    updated_state = %Greenhouse{
+    updated_state = %Aggregate{
       greenhouse
       | target_light: event.target_light,
         updated_at: event.set_at

@@ -11,7 +11,7 @@ defmodule GreenhouseTycoon.SetTargetHumidity.TargetHumiditySetToAggregateV1 do
   - Aggregate: Always named 'aggregate' -> aggregate
   """
   
-  alias GreenhouseTycoon.Greenhouse
+  alias GreenhouseTycoon.Aggregate
   alias GreenhouseTycoon.SetTargetHumidity.EventV1, as: TargetHumiditySetEvent
   
   require Logger
@@ -21,11 +21,11 @@ defmodule GreenhouseTycoon.SetTargetHumidity.TargetHumiditySetToAggregateV1 do
   
   This updates the target humidity in the aggregate state.
   """
-  def apply(%Greenhouse{} = greenhouse, %TargetHumiditySetEvent{} = event) do
+  def apply(%Aggregate{} = greenhouse, %TargetHumiditySetEvent{} = event) do
     Logger.info("TargetHumiditySetToAggregateV1: Applying TargetHumiditySet event for #{event.greenhouse_id} to #{event.target_humidity}%")
     Logger.debug("TargetHumiditySetToAggregateV1: Event data: #{inspect(event)}")
 
-    updated_state = %Greenhouse{
+    updated_state = %Aggregate{
       greenhouse
       | target_humidity: event.target_humidity,
         updated_at: event.set_at

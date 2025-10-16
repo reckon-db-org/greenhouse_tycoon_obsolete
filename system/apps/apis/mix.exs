@@ -6,7 +6,6 @@ defmodule Apis.MixProject do
       app: :apis,
       version: "0.1.0",
       build_path: "../../../_build",
-      config_path: "../../../config/config.exs",
       deps_path: "../../../deps",
       lockfile: "../../../mix.lock",
       elixir: "~> 1.17",
@@ -48,8 +47,7 @@ defmodule Apis.MixProject do
       {:req, "~> 0.5"},
       {:typed_struct, "~> 0.3.0"},
       {:hackney, "~> 1.20.1"},
-      {:mnemonic_slugs, "~> 0.0.3"},
-      {:cachex, "~> 3.6.0"}
+      {:mnemonic_slugs, "~> 0.0.3"}
     ]
   end
 end

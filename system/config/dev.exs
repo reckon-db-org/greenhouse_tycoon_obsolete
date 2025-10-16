@@ -78,11 +78,6 @@ config :swoosh, :api_client, false
 # in production as building large stacktraces may be expensive.
 config :phoenix, :stacktrace_depth, 20
 
-# Configure specific modules' log levels - only show errors
-# Cache population configuration for development
-# Enable automatic cache population on startup - useful for development
-# config :greenhouse_tycoon, :populate_cache_on_startup, true
-
 # Individual apps configure their own ExESDB and Commanded settings
 # App-specific configs are imported through the umbrella config.exs
 
@@ -113,6 +108,14 @@ config :os_mon,
   start_cpu_sup: false,
   start_disksup: false,
   start_memsup: false
+
+config :greenhouse_tycoon, GreenhouseTycoon.Repo,
+  adapter: Ecto.Adapters.Postgres,
+  username: "postgres",
+  password: "postgres",
+  database: "greenhouse_tycoon_dev",
+  hostname: "localhost",
+  pool_size: 10
 
 # Ensure temp directory exists
 File.mkdir_p!("data/greenhouse_tycoon")

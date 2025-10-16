@@ -8,7 +8,7 @@ defmodule GreenhouseTycoon.SetTargetTemperature.MaybeSetTargetTemperatureV1 do
   - Command greenhouse_id must match aggregate greenhouse_id
   """
   
-  alias GreenhouseTycoon.Greenhouse
+  alias GreenhouseTycoon.Aggregate
   alias GreenhouseTycoon.SetTargetTemperature.{CommandV1, EventV1}
   
   require Logger
@@ -18,12 +18,12 @@ defmodule GreenhouseTycoon.SetTargetTemperature.MaybeSetTargetTemperatureV1 do
   
   Returns a TargetTemperatureSet event if successful, or an error tuple if not.
   """
-  def execute(%Greenhouse{greenhouse_id: nil}, %CommandV1{greenhouse_id: greenhouse_id}) do
+  def execute(%Aggregate{greenhouse_id: nil}, %CommandV1{greenhouse_id: greenhouse_id}) do
     Logger.error("MaybeSetTargetTemperatureV1: Cannot set temperature for non-existent greenhouse: #{greenhouse_id}")
     {:error, :greenhouse_not_found}
   end
   
-  def execute(%Greenhouse{greenhouse_id: greenhouse_id} = greenhouse, %CommandV1{greenhouse_id: greenhouse_id} = command) do
+  def execute(%Aggregate{greenhouse_id: greenhouse_id} = greenhouse, %CommandV1{greenhouse_id: greenhouse_id} = command) do
     Logger.info("MaybeSetTargetTemperatureV1: Setting temperature for greenhouse #{greenhouse_id} to #{command.target_temperature}°C")
     Logger.debug("MaybeSetTargetTemperatureV1: Command data: #{inspect(command)}")
     
@@ -39,7 +39,7 @@ defmodule GreenhouseTycoon.SetTargetTemperature.MaybeSetTargetTemperatureV1 do
     end
   end
   
-  def execute(%Greenhouse{greenhouse_id: existing_id}, %CommandV1{greenhouse_id: command_id}) do
+  def execute(%Aggregate{greenhouse_id: existing_id}, %CommandV1{greenhouse_id: command_id}) do
     Logger.error("MaybeSetTargetTemperatureV1: Greenhouse ID mismatch - existing: #{existing_id}, command: #{command_id}")
     {:error, :greenhouse_id_mismatch}
   end

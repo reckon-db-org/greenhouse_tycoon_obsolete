@@ -11,7 +11,7 @@ defmodule GreenhouseTycoon.InitializeGreenhouse.MaybeInitializeGreenhouseV1 do
   - Light: 0 to 100,000 lumens
   """
   
-  alias GreenhouseTycoon.Greenhouse
+  alias GreenhouseTycoon.Aggregate
   alias GreenhouseTycoon.InitializeGreenhouse.{CommandV1, EventV1}
   
   require Logger
@@ -21,7 +21,7 @@ defmodule GreenhouseTycoon.InitializeGreenhouse.MaybeInitializeGreenhouseV1 do
   
   Returns a GreenhouseInitialized event if successful, or an error tuple if not.
   """
-  def execute(%Greenhouse{} = _greenhouse, %CommandV1{} = command) do
+  def execute(%Aggregate{} = _greenhouse, %CommandV1{} = command) do
     Logger.info("MaybeInitializeGreenhouseV1: Initializing greenhouse #{command.greenhouse_id}")
     Logger.debug("MaybeInitializeGreenhouseV1: Command data: #{inspect(command)}")
     

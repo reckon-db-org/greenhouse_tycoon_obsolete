@@ -11,7 +11,7 @@ defmodule GreenhouseTycoon.MeasureTemperature.TemperatureMeasuredToAggregateV1 d
   - Aggregate: Always named 'aggregate' -> aggregate
   """
   
-  alias GreenhouseTycoon.Greenhouse
+  alias GreenhouseTycoon.Aggregate
   alias GreenhouseTycoon.MeasureTemperature.EventV1, as: TemperatureMeasuredEvent
   
   require Logger
@@ -21,11 +21,11 @@ defmodule GreenhouseTycoon.MeasureTemperature.TemperatureMeasuredToAggregateV1 d
   
   This updates the current temperature in the aggregate state.
   """
-  def apply(%Greenhouse{} = greenhouse, %TemperatureMeasuredEvent{} = event) do
+  def apply(%Aggregate{} = greenhouse, %TemperatureMeasuredEvent{} = event) do
     Logger.info("TemperatureMeasuredToAggregateV1: Applying TemperatureMeasured event for #{event.greenhouse_id}: #{event.temperature}°C")
     Logger.debug("TemperatureMeasuredToAggregateV1: Event data: #{inspect(event)}")
 
-    updated_state = %Greenhouse{
+    updated_state = %Aggregate{
       greenhouse
       | current_temperature: event.temperature,
         updated_at: event.measured_at

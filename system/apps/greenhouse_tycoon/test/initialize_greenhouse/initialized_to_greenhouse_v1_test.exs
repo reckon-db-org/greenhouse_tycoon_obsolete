@@ -3,7 +3,7 @@ defmodule GreenhouseTycoon.InitializeGreenhouse.InitializedToPubSubV1Test do
 
   alias GreenhouseTycoon.InitializeGreenhouse.EventV1, as: GreenhouseInitializedEvent
   alias GreenhouseTycoon.InitializeGreenhouse.InitializedToPubSubV1
-  alias GreenhouseTycoon.ReadModels.GreenhouseReadModel
+  alias GreenhouseTycoon.ReadModels.Greenhouse
 
   @test_greenhouse_id "test-greenhouse-init-123"
   @projections_topic "greenhouse_projections"
@@ -33,7 +33,7 @@ defmodule GreenhouseTycoon.InitializeGreenhouse.InitializedToPubSubV1Test do
 
     # Verify PubSub broadcast was sent
     assert_receive {:greenhouse_created, read_model}
-    assert %GreenhouseReadModel{} = read_model
+    assert %Greenhouse{} = read_model
     assert read_model.greenhouse_id == @test_greenhouse_id
     assert read_model.name == "Test Greenhouse"
     assert read_model.location == "Test Location"

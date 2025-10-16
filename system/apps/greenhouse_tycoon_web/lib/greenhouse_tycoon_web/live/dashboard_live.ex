@@ -75,9 +75,9 @@ defmodule GreenhouseTycoonWeb.DashboardLive do
     Logger.info("Dashboard: Initializing greenhouse #{greenhouse_id} in #{city}, #{country}")
 
     # Geocode the city to get coordinates using Open-Meteo (no API key needed)
-    case GreenhouseTycoon.GeocodingService.geocode_city(city, country, nil) do
+    case BCApis.Geocoding.geocode_city(city, country, nil) do
       {:ok, {lat, lon}} ->
-        location = GreenhouseTycoon.GeocodingService.coordinates_to_location_string(lat, lon)
+        location = BCApis.Geocoding.coordinates_to_location_string(lat, lon)
         Logger.info("Dashboard: Successfully geocoded #{city}, #{country} to #{location}")
         create_greenhouse_with_location(greenhouse_id, location, city, country, socket)
 

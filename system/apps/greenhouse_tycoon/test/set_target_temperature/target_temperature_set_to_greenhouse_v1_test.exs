@@ -3,7 +3,7 @@ defmodule GreenhouseTycoon.SetTargetTemperature.TargetTemperatureSetToGreenhouse
 
   alias GreenhouseTycoon.SetTargetTemperature.EventV1, as: TargetTemperatureSetEvent
   alias GreenhouseTycoon.SetTargetTemperature.TargetTemperatureSetToGreenhouseV1
-  alias GreenhouseTycoon.ReadModels.GreenhouseReadModel
+  alias GreenhouseTycoon.ReadModels.Greenhouse
 
   @cache_name :greenhouse_read_models
   @test_greenhouse_id "test-greenhouse-set-temp-123"

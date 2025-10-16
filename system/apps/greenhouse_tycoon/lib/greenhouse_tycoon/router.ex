@@ -10,7 +10,7 @@ defmodule GreenhouseTycoon.Router do
 
   middleware(GreenhouseTycoon.Middleware.LoggingMiddleware)
 
-  alias GreenhouseTycoon.Greenhouse
+  alias GreenhouseTycoon.Aggregate
 
   # Import vertical slice command modules
   alias GreenhouseTycoon.InitializeGreenhouse.CommandV1, as: InitializeGreenhouseV1
@@ -21,8 +21,8 @@ defmodule GreenhouseTycoon.Router do
   alias GreenhouseTycoon.MeasureHumidity.CommandV1, as: MeasureHumidityV1
   alias GreenhouseTycoon.MeasureLight.CommandV1, as: MeasureLightV1
 
-  # Route commands to the Greenhouse aggregate
-  identify(Greenhouse, by: :greenhouse_id)
+  # Route commands to the Aggregate
+  identify(Aggregate, by: :greenhouse_id)
 
   dispatch(
     [
@@ -34,6 +34,6 @@ defmodule GreenhouseTycoon.Router do
       MeasureHumidityV1,
       MeasureLightV1
     ],
-    to: Greenhouse
+    to: Aggregate
   )
 end

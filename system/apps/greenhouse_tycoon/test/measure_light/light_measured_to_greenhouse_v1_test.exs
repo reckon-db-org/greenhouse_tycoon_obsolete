@@ -3,7 +3,7 @@ defmodule GreenhouseTycoon.MeasureLight.LightMeasuredToGreenhouseV1Test do
 
   alias GreenhouseTycoon.MeasureLight.EventV1, as: LightMeasuredEvent
   alias GreenhouseTycoon.MeasureLight.LightMeasuredToGreenhouseV1
-  alias GreenhouseTycoon.ReadModels.GreenhouseReadModel
+  alias GreenhouseTycoon.ReadModels.Greenhouse
 
   @cache_name :greenhouse_read_models
   @test_greenhouse_id "test-greenhouse-light-measure-123"
@@ -151,7 +151,7 @@ defmodule GreenhouseTycoon.MeasureLight.LightMeasuredToGreenhouseV1Test do
   end
 
   defp create_test_greenhouse do
-    read_model = %GreenhouseReadModel{
+    read_model = %Greenhouse{
       greenhouse_id: @test_greenhouse_id,
       name: "Test Greenhouse",
       location: "Test Location",

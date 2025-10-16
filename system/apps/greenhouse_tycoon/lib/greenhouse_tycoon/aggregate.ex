@@ -1,30 +1,15 @@
-defmodule GreenhouseTycoon.Greenhouse do
+defmodule GreenhouseTycoon.Aggregate do
   @moduledoc """
   Greenhouse aggregate for event sourcing.
 
   This aggregate handles commands related to greenhouse regulation
   and maintains the current state of a greenhouse.
+  
+  Following the Reckon vertical slicing architecture, this aggregate delegates
+  command and event handling to specialized handlers in each vertical slice.
   """
-
-  alias GreenhouseTycoon.Commands.{
-    InitializeGreenhouse,
-    SetTargetTemperature,
-    SetTargetHumidity,
-    SetTargetLight,
-    MeasureTemperature,
-    MeasureHumidity,
-    MeasureLight
-  }
-
-  alias GreenhouseTycoon.Events.{
-    GreenhouseInitialized,
-    TemperatureSet,
-    HumiditySet,
-    LightSet,
-    TemperatureMeasured,
-    HumidityMeasured,
-    LightMeasured
-  }
+  
+  require Logger
 
   @type t :: %__MODULE__{
           greenhouse_id: String.t() | nil,
@@ -89,115 +74,20 @@ defmodule GreenhouseTycoon.Greenhouse do
   end
 
   def execute(%__MODULE__{greenhouse_id: nil} = state, command) do
-    require Logger
     Logger.error("Greenhouse.execute: greenhouse_not_found - state has nil greenhouse_id")
     Logger.error("Greenhouse.execute: State: #{inspect(state)}")
     Logger.error("Greenhouse.execute: Command: #{inspect(command)}")
     {:error, :greenhouse_not_found}
   end
 
-  def execute(%__MODULE__{} = greenhouse, %SetTargetTemperature{greenhouse_id: greenhouse_id} = command)
-      when greenhouse.greenhouse_id == greenhouse_id do
-    %TemperatureSet{
-      greenhouse_id: command.greenhouse_id,
-      target_temperature: command.target_temperature,
-      previous_temperature: greenhouse.target_temperature,
-      set_by: command.set_by,
-      set_at: DateTime.utc_now()
-    }
-  end
-
-  def execute(%__MODULE__{} = greenhouse, %SetTargetHumidity{greenhouse_id: greenhouse_id} = command)
-      when greenhouse.greenhouse_id == greenhouse_id do
-    %HumiditySet{
-      greenhouse_id: command.greenhouse_id,
-      target_humidity: command.target_humidity,
-      previous_humidity: greenhouse.target_humidity,
-      set_by: command.set_by,
-      set_at: DateTime.utc_now()
-    }
-  end
-
-  def execute(%__MODULE__{} = greenhouse, %SetTargetLight{greenhouse_id: greenhouse_id} = command)
-      when greenhouse.greenhouse_id == greenhouse_id do
-    require Logger
-
-    Logger.info(
-      "Greenhouse.execute: SetTargetLight for #{greenhouse_id}, state greenhouse_id: #{greenhouse.greenhouse_id}"
-    )
-
-    %LightSet{
-      greenhouse_id: command.greenhouse_id,
-      target_light: command.target_light,
-      previous_light: greenhouse.target_light,
-      set_by: command.set_by,
-      set_at: DateTime.utc_now()
-    }
-  end
-
-  def execute(
-        %__MODULE__{} = greenhouse,
-        %MeasureTemperature{greenhouse_id: greenhouse_id} = command
-      )
-      when greenhouse.greenhouse_id == greenhouse_id do
-    require Logger
-
-    Logger.info(
-      "Greenhouse.execute: MeasureTemperature for #{greenhouse_id}, temperature: #{command.temperature}°C"
-    )
-
-    %TemperatureMeasured{
-      greenhouse_id: command.greenhouse_id,
-      temperature: command.temperature,
-      measured_at: command.measured_at
-    }
-  end
-
-  def execute(
-        %__MODULE__{} = greenhouse,
-        %MeasureHumidity{greenhouse_id: greenhouse_id} = command
-      )
-      when greenhouse.greenhouse_id == greenhouse_id do
-    require Logger
-
-    Logger.info(
-      "Greenhouse.execute: MeasureHumidity for #{greenhouse_id}, humidity: #{command.humidity}%"
-    )
-
-    %HumidityMeasured{
-      greenhouse_id: command.greenhouse_id,
-      humidity: command.humidity,
-      measured_at: command.measured_at
-    }
-  end
-
-  def execute(%__MODULE__{} = greenhouse, %MeasureLight{greenhouse_id: greenhouse_id} = command)
-      when greenhouse.greenhouse_id == greenhouse_id do
-    require Logger
-
-    Logger.info(
-      "Greenhouse.execute: MeasureLight for #{greenhouse_id}, light: #{command.light} lumens"
-    )
-
-    %LightMeasured{
-      greenhouse_id: command.greenhouse_id,
-      light: command.light,
-      measured_at: command.measured_at
-    }
-  end
-
   def execute(%__MODULE__{} = greenhouse, command) do
-    require Logger
     command_name = command.__struct__ |> to_string() |> String.split(".") |> List.last()
-    command_greenhouse_id = Map.get(command, :greenhouse_id, "unknown")
-
-    Logger.error("Greenhouse.execute: Command #{command_name} failed - greenhouse_id mismatch")
-    Logger.error("Greenhouse.execute: Command greenhouse_id: #{command_greenhouse_id}")
-    Logger.error("Greenhouse.execute: State greenhouse_id: #{inspect(greenhouse.greenhouse_id)}")
-    Logger.error("Greenhouse.execute: Full state: #{inspect(greenhouse)}")
-    Logger.error("Greenhouse.execute: Full command: #{inspect(command)}")
-
-    {:error, :greenhouse_id_mismatch}
+    
+    Logger.error("Greenhouse.execute: Unhandled command type: #{command_name}")
+    Logger.error("Greenhouse.execute: Command: #{inspect(command)}")
+    Logger.error("Greenhouse.execute: This indicates a missing command handler - check implementation")
+    
+    {:error, :unhandled_command}
   end
 
   # State Mutators - Delegating to vertical slice aggregate handlers
@@ -230,71 +120,11 @@ defmodule GreenhouseTycoon.Greenhouse do
     GreenhouseTycoon.MeasureLight.LightMeasuredToAggregateV1.apply(greenhouse, event)
   end
 
-  def apply(%__MODULE__{} = greenhouse, %TemperatureSet{} = event) do
-    require Logger
-
-    Logger.info(
-      "Greenhouse.apply: TemperatureSet for #{event.greenhouse_id}, target: #{event.target_temperature}°C"
-    )
-
-    %__MODULE__{
-      greenhouse
-      | target_temperature: event.target_temperature,
-        updated_at: event.set_at
-    }
-  end
-
-  def apply(%__MODULE__{} = greenhouse, %HumiditySet{} = event) do
-    require Logger
-
-    Logger.info(
-      "Greenhouse.apply: HumiditySet for #{event.greenhouse_id}, target: #{event.target_humidity}%"
-    )
-
-    %__MODULE__{greenhouse | target_humidity: event.target_humidity, updated_at: event.set_at}
-  end
-
-  def apply(%__MODULE__{} = greenhouse, %LightSet{} = event) do
-    require Logger
-
-    Logger.info(
-      "Greenhouse.apply: LightSet for #{event.greenhouse_id}, target: #{event.target_light} lumens"
-    )
-
-    %__MODULE__{greenhouse | target_light: event.target_light, updated_at: event.set_at}
-  end
-
-  def apply(%__MODULE__{} = greenhouse, %TemperatureMeasured{} = event) do
-    require Logger
-
-    Logger.info(
-      "Greenhouse.apply: TemperatureMeasured for #{event.greenhouse_id}, temperature: #{event.temperature}°C"
-    )
-
-    %__MODULE__{
-      greenhouse
-      | current_temperature: event.temperature,
-        updated_at: event.measured_at
-    }
-  end
-
-  def apply(%__MODULE__{} = greenhouse, %HumidityMeasured{} = event) do
-    require Logger
-
-    Logger.info(
-      "Greenhouse.apply: HumidityMeasured for #{event.greenhouse_id}, humidity: #{event.humidity}%"
-    )
-
-    %__MODULE__{greenhouse | current_humidity: event.humidity, updated_at: event.measured_at}
-  end
-
-  def apply(%__MODULE__{} = greenhouse, %LightMeasured{} = event) do
-    require Logger
-
-    Logger.info(
-      "Greenhouse.apply: LightMeasured for #{event.greenhouse_id}, light: #{event.light} lumens"
-    )
-
-    %__MODULE__{greenhouse | current_light: event.light, updated_at: event.measured_at}
+  # Add a fallback error handler for unrecognized events
+  def apply(%__MODULE__{} = greenhouse, event) do
+    Logger.error("Greenhouse.apply: Unhandled event type: #{inspect(event.__struct__)}")
+    Logger.error("Greenhouse.apply: Event: #{inspect(event)}")
+    Logger.error("Greenhouse.apply: This indicates a missing event handler - check implementation")
+    greenhouse
   end
 end

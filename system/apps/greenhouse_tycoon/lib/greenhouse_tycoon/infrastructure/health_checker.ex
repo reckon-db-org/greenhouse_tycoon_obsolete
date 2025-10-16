@@ -127,7 +127,7 @@ defmodule GreenhouseTycoon.Infrastructure.HealthChecker do
     health_checks = %{
       event_store: check_event_store(),
       subscriptions: check_subscriptions(),
-      cache_service: check_cache_service(),
+      database: check_database(),
       event_deduplicator: check_event_deduplicator(),
       circuit_breakers: check_circuit_breakers(),
       memory_usage: check_memory_usage(),
@@ -159,23 +159,18 @@ defmodule GreenhouseTycoon.Infrastructure.HealthChecker do
 
   defp check_event_store do
     try do
-      # Try to get greenhouse list to test connectivity
-      case GreenhouseTycoon.CacheService.list_greenhouses() do
-        greenhouses when is_list(greenhouses) ->
-          %{
-            status: :healthy,
-            message: "Event store accessible",
-            details: %{greenhouse_count: length(greenhouses)}
-          }
-
-        error ->
-          %{status: :unhealthy, message: "Event store query failed", details: %{error: error}}
-      end
+      # Try to get greenhouse list from database to test connectivity
+      greenhouses = GreenhouseTycoon.Repo.all(GreenhouseTycoon.Greenhouse)
+      %{
+        status: :healthy,
+        message: "Event store accessible via database",
+        details: %{greenhouse_count: length(greenhouses)}
+      }
     rescue
       error ->
         %{
           status: :unhealthy,
-          message: "Event store connection failed",
+          message: "Event store/database connection failed",
           details: %{error: inspect(error)}
         }
     end
@@ -227,25 +222,21 @@ defmodule GreenhouseTycoon.Infrastructure.HealthChecker do
     end
   end
 
-  defp check_cache_service do
+  defp check_database do
     try do
-      # Test cache connectivity
-      test_key = "health_check_#{System.unique_integer()}"
+      # Test database connectivity with a simple query
+      case GreenhouseTycoon.Repo.query("SELECT 1 as test") do
+        {:ok, _} ->
+          %{status: :healthy, message: "Database operational"}
 
-      case Cachex.put(:greenhouse_read_models, test_key, :test_value, ttl: 1000) do
-        {:ok, true} ->
-          # Clean up test key
-          Cachex.del(:greenhouse_read_models, test_key)
-          %{status: :healthy, message: "Cache service operational"}
-
-        error ->
-          %{status: :unhealthy, message: "Cache service failed", details: %{error: error}}
+        {:error, error} ->
+          %{status: :unhealthy, message: "Database query failed", details: %{error: inspect(error)}}
       end
     rescue
       error ->
         %{
           status: :unhealthy,
-          message: "Cache service unavailable",
+          message: "Database unavailable",
           details: %{error: inspect(error)}
         }
     end
@@ -350,12 +341,13 @@ defmodule GreenhouseTycoon.Infrastructure.HealthChecker do
   end
 
   defp determine_overall_health(health_checks) do
-    critical_components = [:event_store, :subscriptions, :cache_service]
+    critical_components = [:event_store, :subscriptions, :database]
 
     # Check critical components first
     critical_issues =
       Enum.filter(critical_components, fn component ->
-        Map.get(health_checks, component, %{}).status == :unhealthy
+        component_health = Map.get(health_checks, component)
+        component_health != nil and Map.get(component_health, :status) == :unhealthy
       end)
 
     warning_issues =
